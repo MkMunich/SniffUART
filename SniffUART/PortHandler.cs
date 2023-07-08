@@ -83,7 +83,9 @@ namespace SniffUART {
                 num = _serialPort.Read(buf, idx, 4096);
             } catch (TaskCanceledException) {
                 _continue = false;
-            } catch (TimeoutException) { }
+            } catch (TimeoutException) {
+            } catch (Exception) {
+        }
             return num;
         }
 
