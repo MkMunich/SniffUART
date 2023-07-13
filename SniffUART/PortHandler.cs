@@ -10,13 +10,13 @@ using System.Windows.Forms;
 namespace SniffUART {
     internal class PortHandler {
         private static FormMain _frm;
-        public int _uartReal;  // real port
-        public int _uartPar;   // parameter port
+        public int _uartReal;  // real port no
+        public int _uartPar;   // port no, where port parameter are stored
         public Thread _readThread;
         public DateTime _dateStart;
         private bool _continue = false;
         private SerialPort _serialPort = new SerialPort();
-        private byte[] buf = new byte[4096]; // receive buffer
+        private byte[] buf = new byte[256]; // receive buffer
 
         // c'tor
         public PortHandler(FormMain frm, int uart) {
@@ -48,10 +48,8 @@ namespace SniffUART {
                 return;
 
             _dateStart = DateTime.Now;
-            string nowTxt = _dateStart.ToString("yy-MM-dd HH:mm:ss.ff");
-            string cmdTxt = "Open UART" + _uartReal;
-            string[] row = new String[] { _serialPort.PortName, nowTxt, nowTxt, cmdTxt, cmdTxt };
-            _frm.AddData(row);
+            object[] data = new object[] { _uartReal + 256, _dateStart };
+            _frm.AddData(data);
         }
 
         public void Open() {
@@ -62,6 +60,8 @@ namespace SniffUART {
             _uartPar = (bOnePort) ? 0 : _uartReal; // take port parameter from UART0, if OnePort is true
 
             try {
+                _serialPort.ReceivedBytesThreshold = 2;
+                _serialPort.ReadBufferSize = buf.Length;
                 _serialPort.Open();
                 _continue = true;
                 _readThread.Start();
@@ -80,38 +80,40 @@ namespace SniffUART {
         private Int32 ReadBytes(Int32 idx) {
             Int32 num = 0;
             try {
-                num = _serialPort.Read(buf, idx, 4096);
+                num = _serialPort.Read(buf, idx, buf.Length - idx);
             } catch (TaskCanceledException) {
                 _continue = false;
-            } catch (TimeoutException) {
-            } catch (Exception) {
-        }
+            } catch (TimeoutException e) {
+                string exeptStr = e.Message;
+                Console.WriteLine(exeptStr);
+            }
+
+            Console.WriteLine("# Bytes=" + num);
+            
             return num;
         }
 
         private void ReadLoop() {
             Int32 rcvNum = 0;
             Int32 rcv = 0;
+            _serialPort.DiscardInBuffer();
+            _serialPort.DiscardOutBuffer();
 
             while (_continue && _serialPort.IsOpen) {
                 if (_serialPort.BytesToRead > 0) {
                     rcv = ReadBytes(rcvNum);
                 }
-                if (rcv > 0 && (rcvNum + rcv) < 4096) {
+                if (rcv > 0 && (rcvNum + rcv) < buf.Length) {
                     rcvNum += rcv;
                 } else if (rcvNum > 0) {
                     DateTime dt = DateTime.Now;
                     TimeSpan diff = dt - _dateStart;
-                    string tsTxt = diff.ToString(@"hh\:mm\:ss\.ff");
-                    string hex = BitConverter.ToString(buf, 0, rcvNum).Replace('-', ';');
-                    string ascii = Encoding.ASCII.GetString(buf, 0, rcvNum);
-
-                    string[] row = new String[] { _serialPort.PortName, tsTxt, dt.ToString("yy-MM-dd HH:mm:ss.ff"), hex, ascii };
-                    _frm.AddData(row);
+                    object[] data= new object[] { _uartReal, dt, diff, rcvNum, buf };
+                    _frm.AddData(data);
                     rcvNum = 0;
                 }
                 rcv = 0;
-            }
+            } // while
         }
     }
 }

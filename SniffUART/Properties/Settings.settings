@@ -8,8 +8,11 @@
     <Setting Name="ToggleTime" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
-    <Setting Name="ToggleData" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+    <Setting Name="ToggleView" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Msg</Value>
+    </Setting>
+    <Setting Name="UART0_Name" Type="System.String" Scope="User">
+      <Value Profile="(Default)">CB3S</Value>
     </Setting>
     <Setting Name="UART0_PortName" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
@@ -31,6 +34,9 @@
     </Setting>
     <Setting Name="UART0_ReadTimeout" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="UART1_Name" Type="System.String" Scope="User">
+      <Value Profile="(Default)">MCU</Value>
     </Setting>
     <Setting Name="UART1_PortName" Type="System.String" Scope="User">
       <Value Profile="(Default)" />

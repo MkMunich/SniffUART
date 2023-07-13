@@ -18,9 +18,10 @@ namespace SniffUART
     public partial class FormMain : Form
     {
         private FormMain _frm;
-        public delegate void AddDataRow(string[] row);
+        public delegate void AddDataRow(object[] row);
         private AddDataRow _addDataDelegate;
         public SerialPort[] _uarts = new SerialPort[2];
+        public string[] _portName = new string[2];
         private PortHandler[] _ports = new PortHandler[2];
 
         public FormMain()
@@ -33,11 +34,26 @@ namespace SniffUART
             _addDataDelegate = new AddDataRow(AddData);
             _uarts[0] = new SerialPort();
             _uarts[1] = new SerialPort();
+        }
 
+        private void FormMain_Load(object sender, EventArgs e) {
             // restore settings
             OnePortToolStripMenuItem.Checked = Properties.Settings.Default.OnePort;
             ToggleTimeToolStripMenuItem.Checked = Properties.Settings.Default.ToggleTime;
-            ToggleDataToolStripMenuItem.Checked = Properties.Settings.Default.ToggleData;
+            string view = Properties.Settings.Default.ToggleView;
+            asciiToolStripMenuItem.Checked = (view == "ASCII");
+            hexToolStripMenuItem.Checked = (view == "Hex");
+            msgToolStripMenuItem.Checked = (view == "Msg");
+            if (view == "ASCII")
+                asciiToolStripMenuItem_Click(sender, e);
+            else if (view == "Hex")
+                hexToolStripMenuItem_Click(sender, e);
+            else if (view == "Hex")
+                hexToolStripMenuItem_Click(sender, e);
+            else if (view == "Msg")
+                msgToolStripMenuItem_Click(sender, e);
+
+            _portName[0] = (Properties.Settings.Default.UART0_Name == "") ? "CB3S" : Properties.Settings.Default.UART0_Name;
             _uarts[0].PortName = (Properties.Settings.Default.UART0_PortName == "") ? _uarts[0].PortName : Properties.Settings.Default.UART0_PortName;
             _uarts[0].BaudRate = (Properties.Settings.Default.UART0_BaudRate == "") ? _uarts[0].BaudRate : int.Parse(Properties.Settings.Default.UART0_BaudRate);
             _uarts[0].Parity = (Properties.Settings.Default.UART0_Parity == "") ? _uarts[0].Parity : (Parity)Enum.Parse(typeof(Parity), Properties.Settings.Default.UART0_Parity, true);
@@ -45,6 +61,7 @@ namespace SniffUART
             _uarts[0].StopBits = (Properties.Settings.Default.UART0_StopBits == "") ? _uarts[0].StopBits : (StopBits)Enum.Parse(typeof(StopBits), Properties.Settings.Default.UART0_StopBits, true);
             _uarts[0].Handshake = (Properties.Settings.Default.UART0_Handshake == "") ? _uarts[0].Handshake : (Handshake)Enum.Parse(typeof(Handshake), Properties.Settings.Default.UART0_Handshake, true);
             _uarts[0].ReadTimeout = (Properties.Settings.Default.UART0_ReadTimeout == "") ? _uarts[0].ReadTimeout : int.Parse(Properties.Settings.Default.UART0_ReadTimeout);
+            _portName[1] = (Properties.Settings.Default.UART1_Name == "") ? "MCU" : Properties.Settings.Default.UART1_Name;
             _uarts[1].PortName = (Properties.Settings.Default.UART1_PortName == "") ? _uarts[1].PortName : Properties.Settings.Default.UART1_PortName;
             _uarts[1].BaudRate = (Properties.Settings.Default.UART1_BaudRate == "") ? _uarts[1].BaudRate : int.Parse(Properties.Settings.Default.UART1_BaudRate);
             _uarts[1].Parity = (Properties.Settings.Default.UART1_Parity == "") ? _uarts[1].Parity : (Parity)Enum.Parse(typeof(Parity), Properties.Settings.Default.UART1_Parity, true);
@@ -56,14 +73,10 @@ namespace SniffUART
             _ports[0] = new PortHandler(this, 0);
             _ports[1] = new PortHandler(this, 1);
 
-            _frm.toolStripStatusUART0.Text = _uarts[0].PortName;
-            _frm.toolStripStatusUART1.Text = _uarts[1].PortName;
-        }
-
-        private void FormMain_Load(object sender, EventArgs e) {
             // adjust controls
+            toolStripStatusUART0.Text = _portName[0] + "(" + _uarts[0].PortName + ")";
+            toolStripStatusUART1.Text = _portName[1] + "(" + _uarts[1].PortName + ")";
             ToggleTimeToolStripMenuItem_CheckStateChanged(sender, e);
-            ToggleDataToolStripMenuItem_CheckStateChanged(sender, e);
             OnePortToolStripMenuItem_CheckStateChanged(sender, e);
         }
 
@@ -90,9 +103,11 @@ namespace SniffUART
 
         private void SaveSettingsToolStripMenuItem_Click(object sender, EventArgs e) {
             // need to save?
+            string view = (asciiToolStripMenuItem.CheckState == CheckState.Checked) ? "ASCII" : (hexToolStripMenuItem.CheckState == CheckState.Checked) ? "Hex" : "Msg";
             if (Properties.Settings.Default.OnePort == (OnePortToolStripMenuItem.CheckState == CheckState.Checked) &&
                 Properties.Settings.Default.ToggleTime == (ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked) &&
-                Properties.Settings.Default.ToggleData == (ToggleDataToolStripMenuItem.CheckState == CheckState.Checked) &&
+                Properties.Settings.Default.ToggleView == view &&
+                Properties.Settings.Default.UART0_Name == _frm._portName[0] &&
                 Properties.Settings.Default.UART0_PortName == _uarts[0].PortName &&
                 Properties.Settings.Default.UART0_BaudRate == _uarts[0].BaudRate.ToString() &&
                 Properties.Settings.Default.UART0_Parity == _uarts[0].Parity.ToString() &&
@@ -100,6 +115,7 @@ namespace SniffUART
                 Properties.Settings.Default.UART0_StopBits == _uarts[0].StopBits.ToString() &&
                 Properties.Settings.Default.UART0_Handshake == _uarts[0].Handshake.ToString() &&
                 Properties.Settings.Default.UART0_ReadTimeout == _uarts[0].ReadTimeout.ToString() &&
+                Properties.Settings.Default.UART1_Name == _frm._portName[1] &&
                 Properties.Settings.Default.UART1_PortName == _uarts[1].PortName &&
                 Properties.Settings.Default.UART1_BaudRate == _uarts[1].BaudRate.ToString() &&
                 Properties.Settings.Default.UART1_Parity == _uarts[1].Parity.ToString() &&
@@ -121,7 +137,8 @@ namespace SniffUART
             // save settings
             Properties.Settings.Default.OnePort = (OnePortToolStripMenuItem.CheckState == CheckState.Checked);
             Properties.Settings.Default.ToggleTime = (ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked);
-            Properties.Settings.Default.ToggleData = (ToggleDataToolStripMenuItem.CheckState == CheckState.Checked);
+            Properties.Settings.Default.ToggleView = view;
+            Properties.Settings.Default.UART0_Name = _frm._portName[0];
             Properties.Settings.Default.UART0_PortName = _uarts[0].PortName;
             Properties.Settings.Default.UART0_BaudRate = _uarts[0].BaudRate.ToString();
             Properties.Settings.Default.UART0_Parity = _uarts[0].Parity.ToString();
@@ -129,6 +146,7 @@ namespace SniffUART
             Properties.Settings.Default.UART0_StopBits = _uarts[0].StopBits.ToString();
             Properties.Settings.Default.UART0_Handshake = _uarts[0].Handshake.ToString();
             Properties.Settings.Default.UART0_ReadTimeout = _uarts[0].ReadTimeout.ToString();
+            Properties.Settings.Default.UART1_Name = _frm._portName[1];
             Properties.Settings.Default.UART1_PortName = _uarts[1].PortName;
             Properties.Settings.Default.UART1_BaudRate = _uarts[1].BaudRate.ToString();
             Properties.Settings.Default.UART1_Parity = _uarts[1].Parity.ToString();
@@ -173,12 +191,6 @@ namespace SniffUART
             ColDeltaTime.Visible = ! (ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked);
         }
 
-        private void ToggleDataToolStripMenuItem_CheckStateChanged(object sender, EventArgs e) {
-            // toggle Hex & ASCII
-            ColHex.Visible = ToggleDataToolStripMenuItem.CheckState == CheckState.Checked;
-            ColASCII.Visible = ! (ToggleDataToolStripMenuItem.CheckState == CheckState.Checked);
-        }
-
         private void OnePortToolStripMenuItem_CheckStateChanged(object sender, EventArgs e) {
             if (OnePortToolStripMenuItem.CheckState == CheckState.Checked) {
                 
@@ -197,14 +209,16 @@ namespace SniffUART
                 case "ColPort":
                 break;
                 case "ColDeltaTime":
-                ColTime.Width = ColDeltaTime.Width;
+                    ColTime.Width = ColDeltaTime.Width;
                 break;
                 case "ColTime":
-                ColDeltaTime.Width = ColTime.Width;
+                    ColDeltaTime.Width = ColTime.Width;
                 break;
                 case "ColHex":
                 break;
                 case "ColASCII":
+                break;
+                case "ColMsg":
                 break;
             } // switch
         }
@@ -214,12 +228,15 @@ namespace SniffUART
             string uart1_err = "";
             try {
                 _ports[0].Open();
+                toolStripStatusUART0.Text = _portName[0] + "(" + _uarts[0].PortName + ")";
                 toolStripStatusUART0.BackColor = Color.LightGreen;
+
             } catch (Exception ex) {
                 uart0_err = ex.Message;
             }
             try {
                 _ports[1].Open();
+                toolStripStatusUART1.Text = _portName[1] + "(" + _uarts[1].PortName + ")";
                 toolStripStatusUART1.BackColor = Color.LightGreen;
             } catch (Exception ex) {
                 uart1_err = ex.Message;
@@ -233,13 +250,37 @@ namespace SniffUART
             }
         }
 
-        public void AddData(string[] row) {
+        public void AddData(object[] data) {
             if (_frm.DGVData.IsDisposed)
                 return;
             if (_frm.DGVData.InvokeRequired) {
-                this.Invoke(_addDataDelegate, new object[] { row });
+                this.Invoke(_addDataDelegate, new object[] { data });
                 return;
             }
+
+            // below is executed in the thread of Form
+            object[] row = null; // the row columns of DGV
+            int portNo = (int)data[0];
+            DateTime dt = (DateTime)data[1];
+            string dtStr = dt.ToString("yy-MM-dd HH:mm:ss.ff");
+            if (portNo >= 256) { // log start
+                portNo -= 256;
+                string startTxt = "Open " + _uarts[portNo].PortName;
+                row = new object[] { _portName[portNo], dtStr, dtStr, startTxt, startTxt, startTxt };
+            } else { // log data
+                TimeSpan diff = (TimeSpan)data[2];
+                string tsStr = diff.ToString(@"hh\:mm\:ss\.ff");
+                int rcvNum = (int)data[3];
+                Byte[] buf = (Byte[])data[4];
+                string hex = BitConverter.ToString(buf, 0, rcvNum).Replace('-', ';');
+                string ascii = Encoding.ASCII.GetString(buf, 0, rcvNum);
+
+                // decode Tuya message
+                RichTextBox rt = DisplayMsg.decodeMsg(rcvNum, ref buf);
+
+                row = new object[] { _portName[portNo], tsStr, dtStr, hex, ascii, rt.Rtf };
+            }
+
             _frm.DGVData.Rows.Add(row);
             if (_frm.DGVData.SelectedCells.Count > 0 && _frm.DGVData.RowCount == (_frm.DGVData.SelectedCells[0].RowIndex + 1)) {
                 _frm.DGVData.FirstDisplayedScrollingRowIndex = _frm.DGVData.RowCount - 1;
@@ -277,6 +318,33 @@ namespace SniffUART
                     }
                 }
             }
+        }
+
+        private void asciiToolStripMenuItem_Click(object sender, EventArgs e) {
+            asciiToolStripMenuItem.CheckState = CheckState.Checked;
+            hexToolStripMenuItem.CheckState = CheckState.Unchecked;
+            msgToolStripMenuItem.CheckState = CheckState.Unchecked;
+            ColASCII.Visible = true;
+            ColHex.Visible = false;
+            ColMsg.Visible = false;
+        }
+
+        private void hexToolStripMenuItem_Click(object sender, EventArgs e) {
+            asciiToolStripMenuItem.CheckState = CheckState.Unchecked;
+            hexToolStripMenuItem.CheckState = CheckState.Checked;
+            msgToolStripMenuItem.CheckState = CheckState.Unchecked;
+            ColASCII.Visible = false;
+            ColHex.Visible = true;
+            ColMsg.Visible = false;
+        }
+
+        private void msgToolStripMenuItem_Click(object sender, EventArgs e) {
+            asciiToolStripMenuItem.CheckState = CheckState.Unchecked;
+            hexToolStripMenuItem.CheckState = CheckState.Unchecked;
+            msgToolStripMenuItem.CheckState = CheckState.Checked;
+            ColASCII.Visible = false;
+            ColHex.Visible = false;
+            ColMsg.Visible = true;
         }
     }
 }

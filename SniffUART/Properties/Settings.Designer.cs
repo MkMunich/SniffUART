@@ -49,13 +49,25 @@ namespace SniffUART.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool ToggleData {
+        [global::System.Configuration.DefaultSettingValueAttribute("Msg")]
+        public string ToggleView {
             get {
-                return ((bool)(this["ToggleData"]));
+                return ((string)(this["ToggleView"]));
             }
             set {
-                this["ToggleData"] = value;
+                this["ToggleView"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("CB3S")]
+        public string UART0_Name {
+            get {
+                return ((string)(this["UART0_Name"]));
+            }
+            set {
+                this["UART0_Name"] = value;
             }
         }
         
@@ -140,6 +152,18 @@ namespace SniffUART.Properties {
             }
             set {
                 this["UART0_ReadTimeout"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("MCU")]
+        public string UART1_Name {
+            get {
+                return ((string)(this["UART1_Name"]));
+            }
+            set {
+                this["UART1_Name"] = value;
             }
         }
         

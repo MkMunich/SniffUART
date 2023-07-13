@@ -16,8 +16,9 @@ namespace SniffUART
     public partial class UARTProperties : Form
     {
         private FormMain _frm;
-        private int _uartReal;  // real port
-        private int _uartPar;   // parameter port
+        private int _uartReal;      // real port
+        private int _uartPar;       // parameter port
+        private string portName;    // logical port name
 
         private void updateBaudRateCollection(int possibleBaudRates) {
             const int BAUD_075 = 0x00000001;
@@ -127,6 +128,9 @@ namespace SniffUART
                 cBoxHandshake.Enabled = false;
             }
 
+            // logical port name
+            tBoxName.Text = _frm._portName[_uartReal];
+
             // UART
             cBoxUART.Items.Clear();
             foreach (string s in SerialPort.GetPortNames()) {
@@ -182,6 +186,7 @@ namespace SniffUART
         private void butOK_Click(object sender, EventArgs e)
         {
             try {
+                _frm._portName[_uartReal] = tBoxName.Text;
                 _frm._uarts[_uartReal].PortName = cBoxUART.GetItemText(cBoxUART.SelectedItem);
                 _frm._uarts[_uartReal].BaudRate = (cBoxBaudRate.Text != "") ? int.Parse(cBoxBaudRate.Text) : 1;
                 _frm._uarts[_uartReal].Parity = (cBoxParity.Text == "") ? _frm._uarts[_uartReal].Parity : (Parity)Enum.Parse(typeof(Parity), cBoxParity.Text, true);
@@ -191,9 +196,9 @@ namespace SniffUART
                 _frm._uarts[_uartReal].ReadTimeout = (tBoxReadTimeout.Text == "") ? _frm._uarts[_uartReal].ReadTimeout : int.Parse(tBoxReadTimeout.Text);
 
                 if (_uartReal == 0)
-                    _frm.toolStripStatusUART0.Text = cBoxUART.Text;
+                    _frm.toolStripStatusUART0.Text = _frm._portName[_uartReal] + "(" + _frm._uarts[_uartReal].PortName + ")";
                 else
-                    _frm.toolStripStatusUART1.Text = cBoxUART.Text;
+                    _frm.toolStripStatusUART1.Text = _frm._portName[_uartReal] + "(" + _frm._uarts[_uartReal].PortName + ")";
 
                 this.Close();
             } catch (Exception ex) {

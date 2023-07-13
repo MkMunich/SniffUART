@@ -46,16 +46,14 @@
             this.ClearToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.ToggleTimeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.ToggleDataToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
+            this.asciiToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hexToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.msgToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.HelpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showHelpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SearchToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
             this.DGVData = new System.Windows.Forms.DataGridView();
-            this.ColPort = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ColDeltaTime = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ColTime = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ColHex = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.ColASCII = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.StatusStripMain = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusUART0 = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusUART1 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -63,8 +61,14 @@
             this.startToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.stopToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.continueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripStatusDeltaTime = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.ColPort = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ColDeltaTime = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ColTime = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ColHex = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ColASCII = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ColMsg = new DataGridViewRichTextBox.DataGridViewRichTextBoxColumn();
             this.MenuStripMain.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DGVData)).BeginInit();
             this.StatusStripMain.SuspendLayout();
@@ -185,7 +189,10 @@
             this.ClearToolStripMenuItem,
             this.toolStripSeparator2,
             this.ToggleTimeToolStripMenuItem,
-            this.ToggleDataToolStripMenuItem});
+            this.toolStripSeparator6,
+            this.asciiToolStripMenuItem,
+            this.hexToolStripMenuItem,
+            this.msgToolStripMenuItem});
             this.viewToolStripMenuItem.Name = "viewToolStripMenuItem";
             this.viewToolStripMenuItem.Size = new System.Drawing.Size(44, 23);
             this.viewToolStripMenuItem.Text = "View";
@@ -214,16 +221,37 @@
             this.ToggleTimeToolStripMenuItem.Text = "Toggle Time";
             this.ToggleTimeToolStripMenuItem.CheckStateChanged += new System.EventHandler(this.ToggleTimeToolStripMenuItem_CheckStateChanged);
             // 
-            // ToggleDataToolStripMenuItem
+            // toolStripSeparator6
             // 
-            this.ToggleDataToolStripMenuItem.Checked = true;
-            this.ToggleDataToolStripMenuItem.CheckOnClick = true;
-            this.ToggleDataToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.ToggleDataToolStripMenuItem.Name = "ToggleDataToolStripMenuItem";
-            this.ToggleDataToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.H)));
-            this.ToggleDataToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
-            this.ToggleDataToolStripMenuItem.Text = "Toggle Hex";
-            this.ToggleDataToolStripMenuItem.CheckStateChanged += new System.EventHandler(this.ToggleDataToolStripMenuItem_CheckStateChanged);
+            this.toolStripSeparator6.Name = "toolStripSeparator6";
+            this.toolStripSeparator6.Size = new System.Drawing.Size(171, 6);
+            // 
+            // asciiToolStripMenuItem
+            // 
+            this.asciiToolStripMenuItem.CheckOnClick = true;
+            this.asciiToolStripMenuItem.Name = "asciiToolStripMenuItem";
+            this.asciiToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.A)));
+            this.asciiToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.asciiToolStripMenuItem.Text = "ASCII";
+            this.asciiToolStripMenuItem.Click += new System.EventHandler(this.asciiToolStripMenuItem_Click);
+            // 
+            // hexToolStripMenuItem
+            // 
+            this.hexToolStripMenuItem.CheckOnClick = true;
+            this.hexToolStripMenuItem.Name = "hexToolStripMenuItem";
+            this.hexToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.H)));
+            this.hexToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.hexToolStripMenuItem.Text = "Hex";
+            this.hexToolStripMenuItem.Click += new System.EventHandler(this.hexToolStripMenuItem_Click);
+            // 
+            // msgToolStripMenuItem
+            // 
+            this.msgToolStripMenuItem.CheckOnClick = true;
+            this.msgToolStripMenuItem.Name = "msgToolStripMenuItem";
+            this.msgToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.M)));
+            this.msgToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
+            this.msgToolStripMenuItem.Text = "Msg";
+            this.msgToolStripMenuItem.Click += new System.EventHandler(this.msgToolStripMenuItem_Click);
             // 
             // HelpToolStripMenuItem
             // 
@@ -253,7 +281,8 @@
             this.ColDeltaTime,
             this.ColTime,
             this.ColHex,
-            this.ColASCII});
+            this.ColASCII,
+            this.ColMsg});
             this.DGVData.Dock = System.Windows.Forms.DockStyle.Fill;
             this.DGVData.Location = new System.Drawing.Point(0, 27);
             this.DGVData.Name = "DGVData";
@@ -262,52 +291,6 @@
             this.DGVData.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DGVData_CellContentClick);
             this.DGVData.ColumnWidthChanged += new System.Windows.Forms.DataGridViewColumnEventHandler(this.DGVData_ColumnWidthChanged);
             this.DGVData.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.DGVData_RowEnter);
-            // 
-            // ColPort
-            // 
-            this.ColPort.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.ColPort.Frozen = true;
-            this.ColPort.HeaderText = "Port";
-            this.ColPort.MinimumWidth = 50;
-            this.ColPort.Name = "ColPort";
-            this.ColPort.ReadOnly = true;
-            this.ColPort.Width = 51;
-            // 
-            // ColDeltaTime
-            // 
-            this.ColDeltaTime.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.ColDeltaTime.FillWeight = 200F;
-            this.ColDeltaTime.HeaderText = "Delta Time";
-            this.ColDeltaTime.MinimumWidth = 120;
-            this.ColDeltaTime.Name = "ColDeltaTime";
-            this.ColDeltaTime.ReadOnly = true;
-            this.ColDeltaTime.Width = 120;
-            // 
-            // ColTime
-            // 
-            this.ColTime.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.ColTime.FillWeight = 200F;
-            this.ColTime.HeaderText = "Time";
-            this.ColTime.MinimumWidth = 120;
-            this.ColTime.Name = "ColTime";
-            this.ColTime.Width = 120;
-            // 
-            // ColHex
-            // 
-            this.ColHex.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.ColHex.FillWeight = 800F;
-            this.ColHex.HeaderText = "Hex";
-            this.ColHex.MinimumWidth = 1000;
-            this.ColHex.Name = "ColHex";
-            this.ColHex.ReadOnly = true;
-            // 
-            // ColASCII
-            // 
-            this.ColASCII.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.ColASCII.FillWeight = 800F;
-            this.ColASCII.HeaderText = "ASCII";
-            this.ColASCII.MinimumWidth = 1000;
-            this.ColASCII.Name = "ColASCII";
             // 
             // StatusStripMain
             // 
@@ -368,16 +351,72 @@
             this.continueToolStripMenuItem.Text = "Continue";
             this.continueToolStripMenuItem.Click += new System.EventHandler(this.ContinueToolStripMenuItem_Click);
             // 
-            // toolStripSeparator3
-            // 
-            this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(178, 6);
-            // 
             // toolStripStatusDeltaTime
             // 
             this.toolStripStatusDeltaTime.Name = "toolStripStatusDeltaTime";
             this.toolStripStatusDeltaTime.Size = new System.Drawing.Size(63, 17);
             this.toolStripStatusDeltaTime.Text = "Delta Time";
+            // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(178, 6);
+            // 
+            // ColPort
+            // 
+            this.ColPort.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.ColPort.Frozen = true;
+            this.ColPort.HeaderText = "Port";
+            this.ColPort.MinimumWidth = 50;
+            this.ColPort.Name = "ColPort";
+            this.ColPort.ReadOnly = true;
+            this.ColPort.Width = 51;
+            // 
+            // ColDeltaTime
+            // 
+            this.ColDeltaTime.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.ColDeltaTime.FillWeight = 200F;
+            this.ColDeltaTime.HeaderText = "Delta Time";
+            this.ColDeltaTime.MinimumWidth = 120;
+            this.ColDeltaTime.Name = "ColDeltaTime";
+            this.ColDeltaTime.ReadOnly = true;
+            this.ColDeltaTime.Width = 120;
+            // 
+            // ColTime
+            // 
+            this.ColTime.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.ColTime.FillWeight = 200F;
+            this.ColTime.HeaderText = "Time";
+            this.ColTime.MinimumWidth = 120;
+            this.ColTime.Name = "ColTime";
+            this.ColTime.Width = 120;
+            // 
+            // ColHex
+            // 
+            this.ColHex.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.ColHex.FillWeight = 800F;
+            this.ColHex.HeaderText = "Hex";
+            this.ColHex.MinimumWidth = 1000;
+            this.ColHex.Name = "ColHex";
+            this.ColHex.ReadOnly = true;
+            // 
+            // ColASCII
+            // 
+            this.ColASCII.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.ColASCII.FillWeight = 800F;
+            this.ColASCII.HeaderText = "ASCII";
+            this.ColASCII.MinimumWidth = 1000;
+            this.ColASCII.Name = "ColASCII";
+            // 
+            // ColMsg
+            // 
+            this.ColMsg.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.ColMsg.FillWeight = 800F;
+            this.ColMsg.HeaderText = "Msg";
+            this.ColMsg.MinimumWidth = 1000;
+            this.ColMsg.Name = "ColMsg";
+            this.ColMsg.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.ColMsg.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
             // 
             // FormMain
             // 
@@ -428,19 +467,23 @@
         private System.Windows.Forms.ToolStripTextBox SearchToolStripTextBox;
         private System.Windows.Forms.ToolStripMenuItem CloseToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem ToggleTimeToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem ToggleDataToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem hexToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem msgToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         public System.Windows.Forms.ToolStripMenuItem OnePortToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.ToolStripMenuItem OpenPortsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusDeltaTime;
+        private System.Windows.Forms.ToolStripMenuItem asciiToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator6;
         private System.Windows.Forms.DataGridViewTextBoxColumn ColPort;
         private System.Windows.Forms.DataGridViewTextBoxColumn ColDeltaTime;
         private System.Windows.Forms.DataGridViewTextBoxColumn ColTime;
         private System.Windows.Forms.DataGridViewTextBoxColumn ColHex;
         private System.Windows.Forms.DataGridViewTextBoxColumn ColASCII;
-        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusDeltaTime;
+        private DataGridViewRichTextBox.DataGridViewRichTextBoxColumn ColMsg;
     }
 }
 

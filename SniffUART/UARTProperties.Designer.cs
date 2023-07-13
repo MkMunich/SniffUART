@@ -46,12 +46,14 @@
             this.tBoxNo = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
             this.tBoxReadTimeout = new System.Windows.Forms.TextBox();
+            this.tBoxName = new System.Windows.Forms.TextBox();
+            this.label8 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // labUART
             // 
             this.labUART.AutoSize = true;
-            this.labUART.Location = new System.Drawing.Point(8, 9);
+            this.labUART.Location = new System.Drawing.Point(8, 41);
             this.labUART.Name = "labUART";
             this.labUART.Size = new System.Drawing.Size(37, 13);
             this.labUART.TabIndex = 30;
@@ -60,7 +62,7 @@
             // butCancel
             // 
             this.butCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.butCancel.Location = new System.Drawing.Point(122, 334);
+            this.butCancel.Location = new System.Drawing.Point(122, 253);
             this.butCancel.Name = "butCancel";
             this.butCancel.Size = new System.Drawing.Size(75, 23);
             this.butCancel.TabIndex = 29;
@@ -71,7 +73,7 @@
             // butOK
             // 
             this.butOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.butOK.Location = new System.Drawing.Point(31, 334);
+            this.butOK.Location = new System.Drawing.Point(31, 253);
             this.butOK.Name = "butOK";
             this.butOK.Size = new System.Drawing.Size(75, 23);
             this.butOK.TabIndex = 28;
@@ -82,7 +84,7 @@
             // cBoxHandshake
             // 
             this.cBoxHandshake.FormattingEnabled = true;
-            this.cBoxHandshake.Location = new System.Drawing.Point(90, 240);
+            this.cBoxHandshake.Location = new System.Drawing.Point(90, 188);
             this.cBoxHandshake.Name = "cBoxHandshake";
             this.cBoxHandshake.Size = new System.Drawing.Size(127, 21);
             this.cBoxHandshake.TabIndex = 27;
@@ -90,7 +92,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(8, 243);
+            this.label6.Location = new System.Drawing.Point(8, 191);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(62, 13);
             this.label6.TabIndex = 26;
@@ -99,7 +101,7 @@
             // cBoxStopBits
             // 
             this.cBoxStopBits.FormattingEnabled = true;
-            this.cBoxStopBits.Location = new System.Drawing.Point(90, 199);
+            this.cBoxStopBits.Location = new System.Drawing.Point(90, 162);
             this.cBoxStopBits.Name = "cBoxStopBits";
             this.cBoxStopBits.Size = new System.Drawing.Size(127, 21);
             this.cBoxStopBits.TabIndex = 25;
@@ -107,7 +109,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(8, 202);
+            this.label5.Location = new System.Drawing.Point(8, 165);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(49, 13);
             this.label5.TabIndex = 24;
@@ -115,7 +117,7 @@
             // 
             // tBoxDataBits
             // 
-            this.tBoxDataBits.Location = new System.Drawing.Point(90, 155);
+            this.tBoxDataBits.Location = new System.Drawing.Point(90, 137);
             this.tBoxDataBits.Name = "tBoxDataBits";
             this.tBoxDataBits.Size = new System.Drawing.Size(57, 20);
             this.tBoxDataBits.TabIndex = 23;
@@ -123,7 +125,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(8, 158);
+            this.label4.Location = new System.Drawing.Point(8, 140);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(50, 13);
             this.label4.TabIndex = 22;
@@ -132,7 +134,7 @@
             // cBoxParity
             // 
             this.cBoxParity.FormattingEnabled = true;
-            this.cBoxParity.Location = new System.Drawing.Point(90, 115);
+            this.cBoxParity.Location = new System.Drawing.Point(90, 112);
             this.cBoxParity.Name = "cBoxParity";
             this.cBoxParity.Size = new System.Drawing.Size(127, 21);
             this.cBoxParity.TabIndex = 21;
@@ -140,7 +142,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(8, 118);
+            this.label3.Location = new System.Drawing.Point(8, 112);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(33, 13);
             this.label3.TabIndex = 20;
@@ -149,7 +151,7 @@
             // cBoxBaudRate
             // 
             this.cBoxBaudRate.FormattingEnabled = true;
-            this.cBoxBaudRate.Location = new System.Drawing.Point(90, 73);
+            this.cBoxBaudRate.Location = new System.Drawing.Point(90, 87);
             this.cBoxBaudRate.Name = "cBoxBaudRate";
             this.cBoxBaudRate.Size = new System.Drawing.Size(127, 21);
             this.cBoxBaudRate.TabIndex = 19;
@@ -157,7 +159,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(8, 76);
+            this.label2.Location = new System.Drawing.Point(8, 90);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(50, 13);
             this.label2.TabIndex = 18;
@@ -166,7 +168,7 @@
             // cBoxUART
             // 
             this.cBoxUART.FormattingEnabled = true;
-            this.cBoxUART.Location = new System.Drawing.Point(90, 38);
+            this.cBoxUART.Location = new System.Drawing.Point(90, 61);
             this.cBoxUART.Name = "cBoxUART";
             this.cBoxUART.Size = new System.Drawing.Size(127, 21);
             this.cBoxUART.TabIndex = 17;
@@ -175,7 +177,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(8, 41);
+            this.label1.Location = new System.Drawing.Point(8, 64);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(26, 13);
             this.label1.TabIndex = 16;
@@ -183,7 +185,7 @@
             // 
             // tBoxNo
             // 
-            this.tBoxNo.Location = new System.Drawing.Point(90, 6);
+            this.tBoxNo.Location = new System.Drawing.Point(90, 38);
             this.tBoxNo.Name = "tBoxNo";
             this.tBoxNo.ReadOnly = true;
             this.tBoxNo.Size = new System.Drawing.Size(57, 20);
@@ -192,7 +194,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(8, 288);
+            this.label7.Location = new System.Drawing.Point(8, 217);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(74, 13);
             this.label7.TabIndex = 32;
@@ -200,16 +202,35 @@
             // 
             // tBoxReadTimeout
             // 
-            this.tBoxReadTimeout.Location = new System.Drawing.Point(90, 285);
+            this.tBoxReadTimeout.Location = new System.Drawing.Point(90, 214);
             this.tBoxReadTimeout.Name = "tBoxReadTimeout";
             this.tBoxReadTimeout.Size = new System.Drawing.Size(57, 20);
             this.tBoxReadTimeout.TabIndex = 33;
             // 
+            // tBoxName
+            // 
+            this.tBoxName.Location = new System.Drawing.Point(90, 12);
+            this.tBoxName.Name = "tBoxName";
+            this.tBoxName.Size = new System.Drawing.Size(57, 20);
+            this.tBoxName.TabIndex = 35;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(8, 15);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(35, 13);
+            this.label8.TabIndex = 34;
+            this.label8.Text = "Name";
+            // 
             // UARTProperties
             // 
+            this.AcceptButton = this.butOK;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(230, 365);
+            this.ClientSize = new System.Drawing.Size(230, 286);
+            this.Controls.Add(this.tBoxName);
+            this.Controls.Add(this.label8);
             this.Controls.Add(this.tBoxReadTimeout);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.tBoxNo);
@@ -257,5 +278,7 @@
         private System.Windows.Forms.TextBox tBoxNo;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.TextBox tBoxReadTimeout;
+        private System.Windows.Forms.TextBox tBoxName;
+        private System.Windows.Forms.Label label8;
     }
 }
