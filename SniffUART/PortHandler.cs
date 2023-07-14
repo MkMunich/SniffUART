@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static SniffUART.FormMain;
 
 namespace SniffUART {
     internal class PortHandler {
@@ -47,8 +48,10 @@ namespace SniffUART {
             if (!_continue || !_serialPort.IsOpen)
                 return;
 
+            // log Start
             _dateStart = DateTime.Now;
-            object[] data = new object[] { _uartReal + 256, _dateStart };
+            string dateStr = _dateStart.ToString("yy-MM-dd HH:mm:ss.ff");
+            object[] data = new object[] { eLogType.eStart, _uartReal, dateStr };
             _frm.AddData(data);
         }
 
@@ -106,9 +109,12 @@ namespace SniffUART {
                 if (rcv > 0 && (rcvNum + rcv) < buf.Length) {
                     rcvNum += rcv;
                 } else if (rcvNum > 0) {
-                    DateTime dt = DateTime.Now;
-                    TimeSpan diff = dt - _dateStart;
-                    object[] data= new object[] { _uartReal, dt, diff, rcvNum, buf };
+                    // log Data
+                    DateTime date = DateTime.Now;
+                    string dateStr = date.ToString("yy-MM-dd HH:mm:ss.ff");
+                    TimeSpan diff = date - _dateStart;
+                    string diffStr = diff.ToString(@"hh\:mm\:ss\.ff");
+                    object[] data= new object[] { eLogType.eData, _uartReal, dateStr, diffStr, rcvNum, buf };
                     _frm.AddData(data);
                     rcvNum = 0;
                 }

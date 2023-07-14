@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DataGridViewRichTextBox;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -6,11 +7,15 @@ using System.Drawing;
 using System.Globalization;
 using System.IO.Ports;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 using System.Windows.Forms;
 using static System.Net.Mime.MediaTypeNames;
+using static System.Windows.Forms.LinkLabel;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace SniffUART
@@ -18,11 +23,15 @@ namespace SniffUART
     public partial class FormMain : Form
     {
         private FormMain _frm;
+        public FrmDecodeMessages _frmDecode;
         public delegate void AddDataRow(object[] row);
         private AddDataRow _addDataDelegate;
         public SerialPort[] _uarts = new SerialPort[2];
         public string[] _portName = new string[2];
         private PortHandler[] _ports = new PortHandler[2];
+
+        // types of logging to DGV
+        public enum eLogType { eStart, eData, eImport };
 
         public FormMain()
         {
@@ -78,6 +87,13 @@ namespace SniffUART
             toolStripStatusUART1.Text = _portName[1] + "(" + _uarts[1].PortName + ")";
             ToggleTimeToolStripMenuItem_CheckStateChanged(sender, e);
             OnePortToolStripMenuItem_CheckStateChanged(sender, e);
+
+            _frmDecode = new FrmDecodeMessages(_frm);
+            _frmDecode.Hide();
+
+            // write header (for Excel csv import)
+            object[] row = new object[] { "PortName", "Time", "DeltaTime", "Hex", "ASCII", "Message" };
+            _frm.DGVData.Rows.Add(row);
         }
 
         private void UART0ToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -91,13 +107,74 @@ namespace SniffUART
             viewUart.Show();
         }
 
+        private string getFilename() {
+            DateTime dt = DateTime.Now;
+            string dtStr = dt.ToString("yyMMdd HHmm");
+            return dtStr + " Sniff";
+        }
+
         private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SaveFileDialog sfdlg = new SaveFileDialog {
-                Filter = "Text Files (*.txt) | *.txt" //Here you can filter which all files you wanted allow to open
+                FileName = getFilename(),
+                Filter = "Text Files (*.txt) | *.txt"
             };
             if (sfdlg.ShowDialog() == DialogResult.OK) {
-                // Code to write the stream goes here.
+                List<string> lines = new List<string>();
+                foreach (DataGridViewRow row in DGVData.Rows) {
+                    string line = "";
+                    DataGridViewCellCollection cells = row.Cells;
+                    foreach (DataGridViewCell cell in cells) {
+                        string str = (string)cell.Value;
+                        if (cell.EditType.Name == "DataGridViewRichTextBoxEditingControl") { // convert rtf to plain text
+                            if (str != null && str.IndexOf(@"{\rtf1\") >= 0) { // cell contains rtf
+                                DataGridViewRichTextBoxEditingControl richBox = new DataGridViewRichTextBoxEditingControl();
+                                RichTextBox ctl = new RichTextBox();
+                                ctl.Rtf = str;
+                                str = ctl.Text;
+                            }
+                        }
+                        str = (str != null) ? str : "";
+                        line += "\"" + str + "\";";
+                    } // foreach
+                    line = line.Trim(';'); // cut off last ';'
+                    lines.Add(line);
+                } // foreach
+                System.IO.File.WriteAllLines(sfdlg.FileName, lines);
+                
+            }
+        }
+
+        private void ImportToolStripMenuItem_Click(object sender, EventArgs e) {
+            OpenFileDialog rfdlg = new OpenFileDialog {
+                Filter = "Text Files (*Sniff.txt) | *Sniff.txt"
+            };
+            if (rfdlg.ShowDialog() == DialogResult.OK) {
+                string[] lines = System.IO.File.ReadAllLines(rfdlg.FileName);
+                foreach (string line in lines) {
+                    char[] sep = { '"', ';'};
+                    string[] cols = line.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                    if (cols.Length == 0)
+                        continue;
+                    string portName = cols[0];
+                    string dateStr = cols[1];
+                    string diffStr = cols[2];
+                    string col = cols[3];
+                    object[] data;
+                    if (portName == "PortName") {
+                        continue; // header has already been written
+                    } else if (col.IndexOf("Open ") == 0) {
+                        // log Start
+                        data = new object[] { eLogType.eStart, portName, dateStr, diffStr, col };
+                    } else {
+                        // log Import
+                        string[] hex = col.Split(' ');
+                        byte[] buf = hex.Select(value => Convert.ToByte(value, 16)).ToArray();
+                        data = new object[] { eLogType.eImport, portName, dateStr, diffStr, buf.Length, buf };
+                    }
+                    _frm.AddData(data);
+
+                } // foreach
             }
         }
 
@@ -250,6 +327,7 @@ namespace SniffUART
             }
         }
 
+        // insert data into DGV
         public void AddData(object[] data) {
             if (_frm.DGVData.IsDisposed)
                 return;
@@ -259,27 +337,42 @@ namespace SniffUART
             }
 
             // below is executed in the thread of Form
-            object[] row = null; // the row columns of DGV
-            int portNo = (int)data[0];
-            DateTime dt = (DateTime)data[1];
-            string dtStr = dt.ToString("yy-MM-dd HH:mm:ss.ff");
-            if (portNo >= 256) { // log start
-                portNo -= 256;
-                string startTxt = "Open " + _uarts[portNo].PortName;
-                row = new object[] { _portName[portNo], dtStr, dtStr, startTxt, startTxt, startTxt };
-            } else { // log data
-                TimeSpan diff = (TimeSpan)data[2];
-                string tsStr = diff.ToString(@"hh\:mm\:ss\.ff");
-                int rcvNum = (int)data[3];
-                Byte[] buf = (Byte[])data[4];
-                string hex = BitConverter.ToString(buf, 0, rcvNum).Replace('-', ';');
-                string ascii = Encoding.ASCII.GetString(buf, 0, rcvNum);
-
-                // decode Tuya message
-                RichTextBox rt = DisplayMsg.decodeMsg(rcvNum, ref buf);
-
-                row = new object[] { _portName[portNo], tsStr, dtStr, hex, ascii, rt.Rtf };
+            string portName = "";
+            string uartName = "";
+            Type type = data[1].GetType();
+            if (type.Name == "Int32") {
+                int portNo = (int)data[1];
+                portName = _portName[portNo];
+                uartName = _uarts[portNo].PortName;
+            } else {
+                portName = uartName = (string)data[1];
             }
+
+            object[] row = null; // the row columns of DGV
+            eLogType logType = (eLogType)data[0];
+            switch (logType) {
+                case eLogType.eStart: {
+                        string startTxt = "Open " + uartName;
+                        string dtStr = (string)data[2];
+                        row = new object[] { data[1], dtStr, dtStr, startTxt, startTxt, startTxt };
+                    } break;
+                case eLogType.eData:
+                case eLogType.eImport: {
+                        string dtStr = (string)data[2];
+                        string tsStr = (string)data[3];
+                        int rcvNum = (int)data[4];
+                        Byte[] buf = (Byte[])data[5];
+                        string hex = BitConverter.ToString(buf, 0, rcvNum).Replace('-', ' ');
+                        string ascii = Encoding.ASCII.GetString(buf, 0, rcvNum);
+                        //:-( ascii = Regex.Replace(ascii, @"[^\u0000-\u007F]+", "."); // replace all non printable char by '.'
+
+                        // decode Tuya message
+                        RichTextBox rt = new RichTextBox(); // must be c'ted outside decodeMsg(), otherwise it will get disposed!
+                        DisplayMsg.decodeMsg(ref rt, rcvNum, ref buf);
+
+                        row = new object[] { portName, dtStr, tsStr, hex, ascii, rt.Rtf };
+                    } break;
+            } // switch
 
             _frm.DGVData.Rows.Add(row);
             if (_frm.DGVData.SelectedCells.Count > 0 && _frm.DGVData.RowCount == (_frm.DGVData.SelectedCells[0].RowIndex + 1)) {
@@ -345,6 +438,13 @@ namespace SniffUART
             ColASCII.Visible = false;
             ColHex.Visible = false;
             ColMsg.Visible = true;
+        }
+
+        private void DecodeMessagesToolStripMenuItem_Click(object sender, EventArgs e) {
+            if (_frmDecode == null)
+                _frmDecode = new FrmDecodeMessages(_frm);
+            _frmDecode.Show();
+            _frmDecode.Activate();
         }
     }
 }
