@@ -368,7 +368,7 @@ namespace SniffUART
 
                         // decode Tuya message
                         RichTextBox rt = new RichTextBox(); // must be c'ted outside decodeMsg(), otherwise it will get disposed!
-                        DisplayMsg.decodeMsg(ref rt, rcvNum, ref buf);
+                        DecodeMsg.decodeMsg(ref rt, rcvNum, ref buf);
 
                         row = new object[] { portName, dtStr, tsStr, hex, ascii, rt.Rtf };
                     } break;
@@ -392,10 +392,10 @@ namespace SniffUART
                     if (selectedRowCount == 1) {
                         DateTime dtStart = _ports[idxPort]._dateStart;
                         string timeTxt = (string)DGVData.Rows[e.RowIndex].Cells["colTime"].Value;
-                        DateTime dt = DateTime.ParseExact(timeTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
-                        TimeSpan diff = dt - dtStart;
-                        string tsTxt = diff.ToString(@"hh\:mm\:ss\.ff");
-                        toolStripStatusDeltaTime.Text = tsTxt;
+                        DateTime date = DateTime.ParseExact(timeTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
+                        TimeSpan diff = date - dtStart;
+                        string diffTxt = diff.ToString(@"hh\:mm\:ss\.ff");
+                        toolStripStatusDeltaTime.Text = diffTxt;
                     } else {
                         DataGridViewRow rowStart = DGVData.SelectedRows[0];
                         DataGridViewRow rowEnd = DGVData.SelectedRows[DGVData.SelectedRows.Count - 1];
@@ -403,11 +403,11 @@ namespace SniffUART
                         int idxEnd = (rowStart.Index > rowEnd.Index) ? rowStart.Index : rowEnd.Index;
                         string startTxt = (string)DGVData.Rows[idxStart].Cells["colTime"].Value;
                         string endTxt = (string)DGVData.Rows[idxEnd].Cells["colTime"].Value;
-                        DateTime dtStart = DateTime.ParseExact(startTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
-                        DateTime dtEnd = DateTime.ParseExact(endTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
-                        TimeSpan diff = dtEnd - dtStart;
-                        string tsTxt = diff.ToString(@"hh\:mm\:ss\.ff");
-                        toolStripStatusDeltaTime.Text = tsTxt;
+                        DateTime dateStart = DateTime.ParseExact(startTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
+                        DateTime dateEnd = DateTime.ParseExact(endTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
+                        TimeSpan diff = dateEnd - dateStart;
+                        string diffTxt = diff.ToString(@"hh\:mm\:ss\.ff");
+                        toolStripStatusDeltaTime.Text = diffTxt;
                     }
                 }
             }

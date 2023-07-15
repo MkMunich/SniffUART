@@ -48,7 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataGridViewRichTextBoxColumn.cs" />
-    <Compile Include="DisplayMsg.cs" />
+    <Compile Include="DecodeMsg.cs" />
     <Compile Include="FormDecodeMessages.cs">
       <SubType>Form</SubType>
     </Compile>

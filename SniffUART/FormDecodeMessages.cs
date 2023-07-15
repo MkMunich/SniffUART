@@ -55,7 +55,13 @@ namespace SniffUART {
                     _frmMain.AddData(data);
                 } catch {
                 }
+
+                // update GUI
+                _frmMain.Invalidate();
             } // foreach
+
+            // pop result in front
+            _frmMain.Focus();
         }
 
         private void butClear_Click(object sender, EventArgs e) {
