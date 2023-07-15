@@ -46,6 +46,10 @@
             this.DecodeMessagesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
             this.CloseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ProtocollToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.serialCommunicationProtocolToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.wiFiLowPowerDevicesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.wiFiHomeKitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ClearToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
@@ -73,6 +77,7 @@
             this.continueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripStatusDeltaTime = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.dataGridViewRichTextBoxColumn1 = new DataGridViewRichTextBox.DataGridViewRichTextBoxColumn();
             this.MenuStripMain.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DGVData)).BeginInit();
             this.StatusStripMain.SuspendLayout();
@@ -82,6 +87,7 @@
             // 
             this.MenuStripMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
+            this.ProtocollToolStripMenuItem,
             this.viewToolStripMenuItem,
             this.HelpToolStripMenuItem,
             this.SearchToolStripTextBox});
@@ -215,6 +221,45 @@
             this.CloseToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
             this.CloseToolStripMenuItem.Text = "Close";
             this.CloseToolStripMenuItem.Click += new System.EventHandler(this.CloseToolStripMenuItem_Click);
+            // 
+            // ProtocollToolStripMenuItem
+            // 
+            this.ProtocollToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.serialCommunicationProtocolToolStripMenuItem,
+            this.wiFiLowPowerDevicesToolStripMenuItem,
+            this.wiFiHomeKitToolStripMenuItem});
+            this.ProtocollToolStripMenuItem.Name = "ProtocollToolStripMenuItem";
+            this.ProtocollToolStripMenuItem.Size = new System.Drawing.Size(94, 23);
+            this.ProtocollToolStripMenuItem.Text = "MCU Protocol";
+            // 
+            // serialCommunicationProtocolToolStripMenuItem
+            // 
+            this.serialCommunicationProtocolToolStripMenuItem.CheckOnClick = true;
+            this.serialCommunicationProtocolToolStripMenuItem.Name = "serialCommunicationProtocolToolStripMenuItem";
+            this.serialCommunicationProtocolToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
+            this.serialCommunicationProtocolToolStripMenuItem.Tag = "0";
+            this.serialCommunicationProtocolToolStripMenuItem.Text = "Serial Communication Protocol";
+            this.serialCommunicationProtocolToolStripMenuItem.Click += new System.EventHandler(this.McuProtocolToolStripMenuItem_Click);
+            // 
+            // wiFiLowPowerDevicesToolStripMenuItem
+            // 
+            this.wiFiLowPowerDevicesToolStripMenuItem.Checked = true;
+            this.wiFiLowPowerDevicesToolStripMenuItem.CheckOnClick = true;
+            this.wiFiLowPowerDevicesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.wiFiLowPowerDevicesToolStripMenuItem.Name = "wiFiLowPowerDevicesToolStripMenuItem";
+            this.wiFiLowPowerDevicesToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
+            this.wiFiLowPowerDevicesToolStripMenuItem.Tag = "1";
+            this.wiFiLowPowerDevicesToolStripMenuItem.Text = "Wi-Fi Low-Power Devices";
+            this.wiFiLowPowerDevicesToolStripMenuItem.Click += new System.EventHandler(this.McuProtocolToolStripMenuItem_Click);
+            // 
+            // wiFiHomeKitToolStripMenuItem
+            // 
+            this.wiFiHomeKitToolStripMenuItem.CheckOnClick = true;
+            this.wiFiHomeKitToolStripMenuItem.Name = "wiFiHomeKitToolStripMenuItem";
+            this.wiFiHomeKitToolStripMenuItem.Size = new System.Drawing.Size(240, 22);
+            this.wiFiHomeKitToolStripMenuItem.Tag = "2";
+            this.wiFiHomeKitToolStripMenuItem.Text = "Wi-Fi HomeKit";
+            this.wiFiHomeKitToolStripMenuItem.Click += new System.EventHandler(this.McuProtocolToolStripMenuItem_Click);
             // 
             // viewToolStripMenuItem
             // 
@@ -451,6 +496,16 @@
             this.toolStripSeparator3.Name = "toolStripSeparator3";
             this.toolStripSeparator3.Size = new System.Drawing.Size(178, 6);
             // 
+            // dataGridViewRichTextBoxColumn1
+            // 
+            this.dataGridViewRichTextBoxColumn1.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.dataGridViewRichTextBoxColumn1.FillWeight = 800F;
+            this.dataGridViewRichTextBoxColumn1.HeaderText = "Msg";
+            this.dataGridViewRichTextBoxColumn1.MinimumWidth = 1000;
+            this.dataGridViewRichTextBoxColumn1.Name = "dataGridViewRichTextBoxColumn1";
+            this.dataGridViewRichTextBoxColumn1.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.dataGridViewRichTextBoxColumn1.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -521,6 +576,11 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator8;
         private System.Windows.Forms.ToolStripMenuItem DecodeMessagesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem ProtocollToolStripMenuItem;
+        private DataGridViewRichTextBox.DataGridViewRichTextBoxColumn dataGridViewRichTextBoxColumn1;
+        private System.Windows.Forms.ToolStripMenuItem serialCommunicationProtocolToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem wiFiLowPowerDevicesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem wiFiHomeKitToolStripMenuItem;
     }
 }
 

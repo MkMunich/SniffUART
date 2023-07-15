@@ -18,12 +18,11 @@ using static System.Net.Mime.MediaTypeNames;
 using static System.Windows.Forms.LinkLabel;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace SniffUART
-{
-    public partial class FormMain : Form
-    {
+namespace SniffUART {
+    public partial class FormMain : Form {
         private FormMain _frm;
         public FrmDecodeMessages _frmDecode;
+        static public int _mcuProtocol; // controls, which message decoding will be used
         public delegate void AddDataRow(object[] row);
         private AddDataRow _addDataDelegate;
         public SerialPort[] _uarts = new SerialPort[2];
@@ -33,8 +32,7 @@ namespace SniffUART
         // types of logging to DGV
         public enum eLogType { eStart, eData, eImport };
 
-        public FormMain()
-        {
+        public FormMain() {
             InitializeComponent();
             DGVData.RowHeadersWidth = 25;
             DGVData.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
@@ -57,12 +55,15 @@ namespace SniffUART
                 asciiToolStripMenuItem_Click(sender, e);
             else if (view == "Hex")
                 hexToolStripMenuItem_Click(sender, e);
-            else if (view == "Hex")
-                hexToolStripMenuItem_Click(sender, e);
             else if (view == "Msg")
                 msgToolStripMenuItem_Click(sender, e);
 
-            _portName[0] = (Properties.Settings.Default.UART0_Name == "") ? "CB3S" : Properties.Settings.Default.UART0_Name;
+            _mcuProtocol = Properties.Settings.Default.MCU_Protocol;
+            serialCommunicationProtocolToolStripMenuItem.Checked = (_mcuProtocol == 0);
+            wiFiLowPowerDevicesToolStripMenuItem.Checked = (_mcuProtocol == 1);
+            wiFiHomeKitToolStripMenuItem.Checked = (_mcuProtocol == 2);
+
+            _portName[0] = (Properties.Settings.Default.ToggleData == "") ? "CB3S" : Properties.Settings.Default.ToggleData;
             _uarts[0].PortName = (Properties.Settings.Default.UART0_PortName == "") ? _uarts[0].PortName : Properties.Settings.Default.UART0_PortName;
             _uarts[0].BaudRate = (Properties.Settings.Default.UART0_BaudRate == "") ? _uarts[0].BaudRate : int.Parse(Properties.Settings.Default.UART0_BaudRate);
             _uarts[0].Parity = (Properties.Settings.Default.UART0_Parity == "") ? _uarts[0].Parity : (Parity)Enum.Parse(typeof(Parity), Properties.Settings.Default.UART0_Parity, true);
@@ -101,8 +102,7 @@ namespace SniffUART
             viewUart.Show();
         }
 
-        private void UART1ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+        private void UART1ToolStripMenuItem_Click(object sender, EventArgs e) {
             UARTProperties viewUart = new UARTProperties(this, 1);
             viewUart.Show();
         }
@@ -113,8 +113,7 @@ namespace SniffUART
             return dtStr + " Sniff";
         }
 
-        private void SaveToolStripMenuItem_Click(object sender, EventArgs e)
-        {
+        private void SaveToolStripMenuItem_Click(object sender, EventArgs e) {
             SaveFileDialog sfdlg = new SaveFileDialog {
                 FileName = getFilename(),
                 Filter = "Text Files (*.txt) | *.txt"
@@ -141,7 +140,7 @@ namespace SniffUART
                     lines.Add(line);
                 } // foreach
                 System.IO.File.WriteAllLines(sfdlg.FileName, lines);
-                
+
             }
         }
 
@@ -152,7 +151,7 @@ namespace SniffUART
             if (rfdlg.ShowDialog() == DialogResult.OK) {
                 string[] lines = System.IO.File.ReadAllLines(rfdlg.FileName);
                 foreach (string line in lines) {
-                    char[] sep = { '"', ';'};
+                    char[] sep = { '"', ';' };
                     string[] cols = line.Split(sep, StringSplitOptions.RemoveEmptyEntries);
                     if (cols.Length == 0)
                         continue;
@@ -184,7 +183,8 @@ namespace SniffUART
             if (Properties.Settings.Default.OnePort == (OnePortToolStripMenuItem.CheckState == CheckState.Checked) &&
                 Properties.Settings.Default.ToggleTime == (ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked) &&
                 Properties.Settings.Default.ToggleView == view &&
-                Properties.Settings.Default.UART0_Name == _frm._portName[0] &&
+                Properties.Settings.Default.ToggleData == _frm._portName[0] &&
+                Properties.Settings.Default.MCU_Protocol == _frm.getTagMcuProtocolToolStripMenuItem() &&
                 Properties.Settings.Default.UART0_PortName == _uarts[0].PortName &&
                 Properties.Settings.Default.UART0_BaudRate == _uarts[0].BaudRate.ToString() &&
                 Properties.Settings.Default.UART0_Parity == _uarts[0].Parity.ToString() &&
@@ -215,7 +215,8 @@ namespace SniffUART
             Properties.Settings.Default.OnePort = (OnePortToolStripMenuItem.CheckState == CheckState.Checked);
             Properties.Settings.Default.ToggleTime = (ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked);
             Properties.Settings.Default.ToggleView = view;
-            Properties.Settings.Default.UART0_Name = _frm._portName[0];
+            Properties.Settings.Default.ToggleData = _frm._portName[0];
+            Properties.Settings.Default.MCU_Protocol = _frm.getTagMcuProtocolToolStripMenuItem();
             Properties.Settings.Default.UART0_PortName = _uarts[0].PortName;
             Properties.Settings.Default.UART0_BaudRate = _uarts[0].BaudRate.ToString();
             Properties.Settings.Default.UART0_Parity = _uarts[0].Parity.ToString();
@@ -265,12 +266,12 @@ namespace SniffUART
         private void ToggleTimeToolStripMenuItem_CheckStateChanged(object sender, EventArgs e) {
             // toggle time & delta time
             ColTime.Visible = ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked;
-            ColDeltaTime.Visible = ! (ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked);
+            ColDeltaTime.Visible = !(ToggleTimeToolStripMenuItem.CheckState == CheckState.Checked);
         }
 
         private void OnePortToolStripMenuItem_CheckStateChanged(object sender, EventArgs e) {
             if (OnePortToolStripMenuItem.CheckState == CheckState.Checked) {
-                
+
             }
         }
 
@@ -286,10 +287,10 @@ namespace SniffUART
                 case "ColPort":
                 break;
                 case "ColDeltaTime":
-                    ColTime.Width = ColDeltaTime.Width;
+                ColTime.Width = ColDeltaTime.Width;
                 break;
                 case "ColTime":
-                    ColDeltaTime.Width = ColTime.Width;
+                ColDeltaTime.Width = ColTime.Width;
                 break;
                 case "ColHex":
                 break;
@@ -445,6 +446,40 @@ namespace SniffUART
                 _frmDecode = new FrmDecodeMessages(_frm);
             _frmDecode.Show();
             _frmDecode.Activate();
+        }
+
+        private int getTagMcuProtocolToolStripMenuItem() {
+            if (serialCommunicationProtocolToolStripMenuItem.Checked)
+                return 0;
+            if (wiFiLowPowerDevicesToolStripMenuItem.Checked)
+                return 1;
+            if (wiFiHomeKitToolStripMenuItem.Checked)
+                return 2;
+            return 1; // default
+        }
+
+        private void McuProtocolToolStripMenuItem_Click(object sender, EventArgs e) {
+            object obj= ((ToolStripMenuItem)sender).Tag.ToString();
+            int tag;
+            int.TryParse(obj.ToString(), out tag);
+            FormMain._mcuProtocol = tag;
+            switch (tag) {
+                case 0: // Serial Communication Protocol
+                    serialCommunicationProtocolToolStripMenuItem.Checked = true;
+                    wiFiLowPowerDevicesToolStripMenuItem.Checked = false;
+                    wiFiHomeKitToolStripMenuItem.Checked = false;
+                break;
+                case 1: // Wi-Fi Low-Power Devices
+                    serialCommunicationProtocolToolStripMenuItem.Checked = false;
+                    wiFiLowPowerDevicesToolStripMenuItem.Checked = true;
+                    wiFiHomeKitToolStripMenuItem.Checked = false;
+                break;
+                case 2: // Wi-Fi HomeKit
+                    serialCommunicationProtocolToolStripMenuItem.Checked = false;
+                    wiFiLowPowerDevicesToolStripMenuItem.Checked = false;
+                    wiFiHomeKitToolStripMenuItem.Checked = true;
+                break;
+            } // switch
         }
     }
 }

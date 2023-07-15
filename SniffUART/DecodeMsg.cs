@@ -11,8 +11,9 @@ using System.Data.OleDb;
 
 namespace SniffUART {
     // refer to Tuya Serial Port Protocol
-    // Version 0: https://developer.tuya.com/en/docs/iot/tuyacloudlowpoweruniversalserialaccessprotocol?id=K95afs9h4tjjh
-    // Version 3: https://developer.tuya.com/en/docs/iot/tuya-cloud-universal-serial-port-access-protocol?id=K9hhi0xxtn9cb
+    // McuSerPort: https://developer.tuya.com/en/docs/iot/tuya-cloud-universal-serial-port-access-protocol?id=K9hhi0xxtn9cb#protocols
+    // McuLowPower: https://developer.tuya.com/en/docs/iot/tuyacloudlowpoweruniversalserialaccessprotocol?id=K95afs9h4tjjh
+    // McuHomeKit: https://developer.tuya.com/en/docs/iot/wifi-module-mcu-development-overview-for-homekit?id=Kaa8fvusmgapc
     internal static class DecodeMsg {
         static Dictionary<int, string> dataTypes = new Dictionary<int, string>
         {
@@ -215,8 +216,22 @@ namespace SniffUART {
             // cmd is either the first byte or cmd from Frame message or -1 (means unknown)
             int ver = (num == 1) ? 0 : (num >= 4) ? data[2] : 0;
             int cmd = (num == 1) ? data[0] : (num >= 4) ? data[3] : -1;
-            switch (cmd + (ver * 256)) {
-                case 0x000: {
+
+            // bit12-15 MCU protocol, bit8-11 version, bit0-7 cmd
+            const int McuSerPort    = 0x0000;
+            const int McuLowPower   = 0x1000;
+            const int McuHomeKit    = 0x2000;
+            const int Ver0 = 0x0000;
+            const int Ver1 = 0x0100;
+            const int Ver3 = 0x0200;
+
+            switch (cmd + (ver << 8) + (FormMain._mcuProtocol << 12)) {
+                case McuSerPort | Ver0 | 0x00:
+                case McuLowPower | Ver0 | 0x00:
+                case McuHomeKit | Ver0 | 0x00:
+                case McuSerPort | Ver3 | 0x00:
+                case McuLowPower | Ver3 | 0x00:
+                case McuHomeKit | Ver3 | 0x00: {
                         if (cmd == 0) {
                             appendTxt(ref rtBox, "Heartbeat", colorCmd);
                         } else {
@@ -224,7 +239,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x001: { // [Query} product information
+                case McuLowPower | Ver0 | 0x01: { // [Query} product information
                         appendTxt(ref rtBox, "Product", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -237,7 +252,7 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " " + prodTxt);
                         }
                     } break;
-                case 0x002: { // Report the network status of the device
+                case McuLowPower | Ver0 | 0x02: { // Report the network status of the device
                         appendTxt(ref rtBox, "McuConf", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -256,7 +271,7 @@ namespace SniffUART {
                             }
                         }
                     } break;
-                case 0x003: { // Reset Wi-Fi
+                case McuLowPower | Ver0 | 0x03: { // Reset Wi-Fi
                         appendTxt(ref rtBox, "Reset Wi-Fi", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -269,7 +284,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x004: { // Reset Wi-Fi and select configuration mode
+                case McuLowPower | Ver0 | 0x04: { // Reset Wi-Fi and select configuration mode
                         appendTxt(ref rtBox, "WifiState", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -292,7 +307,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x005: { // Status Data
+                case McuLowPower | Ver0 | 0x05: { // Status Data
                         appendTxt(ref rtBox, "Status Data", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -322,9 +337,9 @@ namespace SniffUART {
                             }
                         }
                     } break;
-                case 0x006:   // Obtain Local Time
-                case 0x01c:   // Obtain Local Time
-                case 0x31c: { // Obtain Local Time
+                case McuLowPower | Ver0 | 0x06:   // Obtain Local Time
+                case McuHomeKit | Ver0 | 0x1c:   // Obtain Local Time Response
+                case McuHomeKit | Ver3 | 0x1c: { // Obtain Local Time Cmd
                         appendTxt(ref rtBox, "Obtain Local Time", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -357,7 +372,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x007:   // Wi-Fi functional test
+                case McuLowPower | Ver0 | 0x07:   // Wi-Fi functional test
                 case 0x30e: { // Wi-Fi functional test cmd
                         appendTxt(ref rtBox, "Wi-Fi Func Test", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
@@ -389,7 +404,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x008: { // Report Data
+                case McuLowPower | Ver0 | 0x08: { // Report Data
                         appendTxt(ref rtBox, "Report Data", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -438,7 +453,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                    case 0x009: { // Send Module Command
+                    case McuLowPower | Ver0 | 0x09: { // Send Module Command
                         appendTxt(ref rtBox, "Send Command", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -458,7 +473,7 @@ namespace SniffUART {
                             }
                         }
                     } break;
-                    case 0x00b: { // Query the signal strength of the currently connected router
+                    case McuLowPower | Ver0 | 0x0b: { // Query the signal strength of the currently connected router
                         appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -489,8 +504,8 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x00a:   // Wi-Fi firmware upgrade
-                case 0x00c: { // MCU firmware upgrading status
+                case McuLowPower | Ver0 | 0x0a:   // Wi-Fi firmware upgrade
+                case McuLowPower | Ver0 | 0x0c: { // MCU firmware upgrading status
                         appendTxt(ref rtBox, (cmd == 0x0a)? "Wi-Fi Firmware Upgrade" : "MCU Upgrading Status", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -512,7 +527,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x00d: { // Number Firmware Bytes
+                case McuLowPower | Ver0 | 0x0d: { // Number Firmware Bytes
                         appendTxt(ref rtBox, "Number Firmware Bytes", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -528,7 +543,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x00e: { // Packet Transfer
+                case McuLowPower | Ver0 | 0x0e: { // Packet Transfer
                         appendTxt(ref rtBox, "Packet Transfer", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -549,7 +564,7 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case 0x010: { // Obtain DP cache command && its answer (which is tricky to distinguish)
+                case McuLowPower | Ver0 | 0x010: { // Obtain DP cache command && its answer (which is tricky to distinguish)
                         appendTxt(ref rtBox, "Obtain DP Cache", colorCmd);
                         bErr |= checkFrame(ref rtBox, num, ref data);
                         if (bErr)
@@ -594,7 +609,7 @@ namespace SniffUART {
                         }
                     } break;
                 default: {
-                        appendTxt(ref rtBox, "Unknown Version= " + ver.ToString() + " Cmd=" + cmd.ToString(), colorErr);
+                        appendTxt(ref rtBox, "Unknown Version= " + ver.ToString() + " Cmd=" + cmd.ToString("0xX2"), colorErr);
                         bErr = true;
                 } break;
             } // switch

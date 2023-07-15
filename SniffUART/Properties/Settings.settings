@@ -8,8 +8,14 @@
     <Setting Name="ToggleTime" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="ToggleData" Type="System.String" Scope="User">
+      <Value Profile="(Default)">true</Value>
+    </Setting>
     <Setting Name="ToggleView" Type="System.String" Scope="User">
       <Value Profile="(Default)">Msg</Value>
+    </Setting>
+    <Setting Name="MCU_Protocol" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="UART0_Name" Type="System.String" Scope="User">
       <Value Profile="(Default)">CB3S</Value>

@@ -49,6 +49,18 @@ namespace SniffUART.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("true")]
+        public string ToggleData {
+            get {
+                return ((string)(this["ToggleData"]));
+            }
+            set {
+                this["ToggleData"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Msg")]
         public string ToggleView {
             get {
@@ -56,6 +68,18 @@ namespace SniffUART.Properties {
             }
             set {
                 this["ToggleView"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int MCU_Protocol {
+            get {
+                return ((int)(this["MCU_Protocol"]));
+            }
+            set {
+                this["MCU_Protocol"] = value;
             }
         }
         
