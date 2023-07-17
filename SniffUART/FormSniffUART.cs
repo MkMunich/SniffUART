@@ -22,7 +22,7 @@ namespace SniffUART {
     public partial class FormMain : Form {
         private FormMain _frm;
         public FrmDecodeMessages _frmDecode;
-        static public int _mcuProtocol; // controls, which message decoding will be used
+        static public int _mcuProtocol; // controls, which Tuya message decoding will be used
         public delegate void AddDataRow(object[] row);
         private AddDataRow _addDataDelegate;
         public SerialPort[] _uarts = new SerialPort[2];

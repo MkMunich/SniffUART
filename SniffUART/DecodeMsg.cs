@@ -15,7 +15,13 @@ namespace SniffUART {
     // McuLowPower: https://developer.tuya.com/en/docs/iot/tuyacloudlowpoweruniversalserialaccessprotocol?id=K95afs9h4tjjh
     // McuHomeKit: https://developer.tuya.com/en/docs/iot/wifi-module-mcu-development-overview-for-homekit?id=Kaa8fvusmgapc
     internal static class DecodeMsg {
-        static Dictionary<int, string> dataTypes = new Dictionary<int, string>
+        public enum eDecoder {
+            eMcuSerPort = 0,
+            eMcuLowPower,
+            eMcuHomeKit,
+        };
+
+        private static Dictionary<int, string> dataTypes = new Dictionary<int, string>
         {
             { 0, "Raw" },
             { 1, "Bool" },
@@ -25,29 +31,36 @@ namespace SniffUART {
             { 5, "Bitmap" },
         };
 
-        static Dictionary<int, string> NetworkStates = new Dictionary<int, string>
+        private static Dictionary<int, string> NetworkStates = new Dictionary<int, string>
         {
-            { 0, "smartconfig configuration status" },
-            { 1, "AP configuration status" },
-            { 2, "Wi-Fi has been configured, but not connected to the router" },
-            { 3, "Wi-Fi has been configured, and connected to the router" },
-            { 4, "Wi-Fi has been connected to the router and the cloud" },
+            { 0x00, "smartconfig configuration status" },
+            { 0x01, "AP configuration status" },
+            { 0x02, "Wi-Fi has been configured, but not connected to the router" },
+            { 0x03, "Wi-Fi has been configured, and connected to the router" },
+            { 0x04, "Wi-Fi has been connected to the router and the cloud" },
         };
 
-        static Dictionary<int, string> ReportStates = new Dictionary<int, string>
+        private static Dictionary<int, string> ReportStates = new Dictionary<int, string>
         {
-            { 0, "Reported successfully" },
-            { 1, "The current record is reported successfully, and previously saved records need to be reported" },
-            { 2, "Failed to report" },
+            { 0x00, "Reported successfully" },
+            { 0x01, "The current record is reported successfully, and previously saved records need to be reported" },
+            { 0x02, "Failed to report" },
         };
 
-        static Dictionary<int, string> FWUpdateReturns = new Dictionary<int, string>
+        private static Dictionary<int, string> FWUpdateReturns = new Dictionary<int, string>
         {
-            { 0, "(Start to detect firmware upgrading) Do not power off" },
-            { 1, "(The latest firmware already) Power off" },
-            { 2, "(Upgrading the firmware) Do not power off" },
-            { 3, "(The firmware is upgraded successfully) Power off " },
-            { 4, "(Failed to upgrade the firmware) Power off" },
+            { 0x00, "(Start to detect firmware upgrading) Do not power off" },
+            { 0x01, "(The latest firmware already) Power off" },
+            { 0x02, "(Upgrading the firmware) Do not power off" },
+            { 0x03, "(The firmware is upgraded successfully) Power off " },
+            { 0x04, "(Failed to upgrade the firmware) Power off" },
+        };
+
+        private static Dictionary<int, string> ResultFeatures = new Dictionary<int, string>
+        {
+            { 0x00, "Success" },
+            { 0x01, "Invalid Data" },
+            { 0x02, "Failure" },
         };
 
         // color definitions of appearance
@@ -73,6 +86,16 @@ namespace SniffUART {
         }
 
         // returns true, if an error is detected
+        public static bool checkHdr(ref RichTextBox rtBox, int num, ref Byte[] data) {
+            if (num <= 2 || data[0] != 0x55 || data[1] != 0xAA) {
+                appendTxt(ref rtBox, " ");
+                appendTxt(ref rtBox, "Wrong Hdr (num=" + num + " " + data[0].ToString("X2") + " " + data[1].ToString("X2") + ")", colorErr);
+                return true;
+            }
+            return false;
+        }
+
+        // returns true, if an error is detected
         public static bool checksum(ref RichTextBox rtBox, int num, ref Byte[] data) {
             if (num <= 3) {
                 appendTxt(ref rtBox, " ");
@@ -92,28 +115,7 @@ namespace SniffUART {
         }
 
         // returns true, if an error is detected
-        public static bool checkVersion(ref RichTextBox rtBox, int num, ref Byte[] data) {
-            int ver = data[2];
-            if (num >= 3 && !(ver == 0 || ver == 3)) { // version 0 or 3
-                appendTxt(ref rtBox, " ");
-                appendTxt(ref rtBox, "Unsupported Version=" + ver.ToString(), colorErr);
-                return true;
-            }
-            return false;
-        }
-
-        // returns true, if an error is detected
-        public static bool checkHdr(ref RichTextBox rtBox, int num, ref Byte[] data) {
-            if (num <= 2 || data[0] != 0x55 || data[1] != 0xAA) {
-                appendTxt(ref rtBox, " ");
-                appendTxt(ref rtBox, "Wrong Hdr (num=" + num + " " + data[0].ToString("X2") + " " + data[1].ToString("X2") + ")", colorErr);
-                return true;
-            }
-            return false;
-        }
-
-        // returns true, if an error is detected
-        public static bool checkFrame(ref RichTextBox rtBox, int num, ref Byte[] data) {
+        public static bool checkFrame(eDecoder decClass, ref RichTextBox rtBox, int num, ref Byte[] data) {
             bool bErr = false; // true, if error detected
 
             int dataLen = (data[4] << 8) + data[5];
@@ -124,14 +126,13 @@ namespace SniffUART {
                 return true;
             }
             bErr |= checkHdr(ref rtBox, num, ref data);
-            bErr |= checkVersion(ref rtBox, num, ref data);
             bErr |= checksum(ref rtBox, num, ref data);
 
             return bErr;
         }
 
         // returns true, if an error is detected
-        public static bool decodeStatusDataUnits(ref RichTextBox rtBox, int num, ref int offset, ref Byte[] data) {
+        public static bool decodeStatusDataUnits(ref RichTextBox rtBox, eDecoder dec, int ver, int num, ref int offset, ref Byte[] data) {
             bool bErr = false; // true, if error detected
 
             if (offset + 5 > (num - 1)) { // testing the minimum # bytes of a DP unit part failed
@@ -209,8 +210,47 @@ namespace SniffUART {
             return bErr;
         }
 
-        // Function to decode a single message
+        // Public function to decode a single Tuya message
+        // Hints: Assuming, that Tuya devices are only using messages within one of the following decoders:
+        // McuSerPort, McuLowPower or McuHomeKit (refer to urls above).
+        // For this, a single Tuya device should not (??really??) use messages from different decoder class.
+        // One decoder class is preselected in FormMain._mcuProtocol and will be used first. If decoding of
+        // that decoder class fails, then this function will give the other decoder classes a chance.
         public static RichTextBox decodeMsg(ref RichTextBox rtBox, int num, ref byte[] data) {
+            eDecoder decoderClass = (eDecoder) FormMain._mcuProtocol;
+            bool fstTry = decodingMsg(decoderClass, ref rtBox, num, ref data);
+            if (! fstTry) { return rtBox; };
+
+            // save first output
+            RichTextBox fstResult = new RichTextBox();
+            fstResult.Rtf = rtBox.Rtf;
+
+            // try the other decoder 'classes'
+            if (decoderClass != eDecoder.eMcuSerPort) {
+                rtBox.Clear(); // delete previous output
+                appendTxt(ref rtBox, "Decoder=" + eDecoder.eMcuSerPort.ToString(), colorErr);
+                bool nxtTry = decodingMsg(eDecoder.eMcuSerPort, ref rtBox, num, ref data);
+                if (!nxtTry) { return rtBox; };
+            }
+            if (decoderClass != eDecoder.eMcuLowPower) { // try McuLowPower
+                rtBox.Clear(); // delete previous output
+                appendTxt(ref rtBox, "Decoder=" + eDecoder.eMcuLowPower.ToString(), colorErr);
+                bool nxtTry = decodingMsg(eDecoder.eMcuLowPower, ref rtBox, num, ref data);
+                if (!nxtTry) { return rtBox; };
+            }
+            if (decoderClass != eDecoder.eMcuHomeKit) { // try McuHomeKit
+                rtBox.Clear(); // delete previous output
+                appendTxt(ref rtBox, "Decoder=" + eDecoder.eMcuHomeKit.ToString(), colorErr);
+                bool nxtTry = decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                if (!nxtTry) { return rtBox; };
+            }
+
+            rtBox.Rtf = fstResult.Rtf; // return first output
+            return rtBox;
+        }
+
+        // Internal function to decode a single message
+        private static bool decodingMsg(eDecoder dec, ref RichTextBox rtBox, int num, ref byte[] data) {
             bool bErr = false; // true, if error detected
 
             // cmd is either the first byte or cmd from Frame message or -1 (means unknown)
@@ -223,25 +263,41 @@ namespace SniffUART {
             const int McuHomeKit    = 0x2000;
             const int Ver0 = 0x0000;
             const int Ver1 = 0x0100;
-            const int Ver3 = 0x0200;
+            const int Ver2 = 0x0200;
+            const int Ver3 = 0x0300;
 
-            switch (cmd + (ver << 8) + (FormMain._mcuProtocol << 12)) {
+            int sw = ((int)dec << 12) + (ver << 8) + cmd;
+            switch (sw) {
+                // Heartneat
                 case McuSerPort | Ver0 | 0x00:
-                case McuLowPower | Ver0 | 0x00:
-                case McuHomeKit | Ver0 | 0x00:
                 case McuSerPort | Ver3 | 0x00:
+                case McuLowPower | Ver0 | 0x00:
                 case McuLowPower | Ver3 | 0x00:
-                case McuHomeKit | Ver3 | 0x00: {
-                        if (cmd == 0) {
-                            appendTxt(ref rtBox, "Heartbeat", colorCmd);
-                        } else {
-                            appendTxt(ref rtBox, "Version " + ver.ToString() + " not yet supported", colorErr);
-                            bErr = true;
+                case McuHomeKit | Ver0 | 0x00:
+                case McuHomeKit | Ver3 | 0x00:
+                    {
+                        appendTxt(ref rtBox, "Heartbeat", colorCmd);
+                        if (num > 1) {
+                            bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                            if (bErr)
+                                break;
+                            int dataLen = (data[4] << 8) + data[5];
+                            if (dataLen == 0) { // okay
+                            } else if (dataLen == 1) {
+                                int startState = data[6];
+                                appendTxt(ref rtBox, (startState == 0) ? "MCU restarting" : "MCU running", colorData);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            }
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x01: { // [Query} product information
+
+                // [Query] product information
+                case McuSerPort | Ver3 | 0x01:
+                case McuLowPower | Ver0 | 0x01:
+                    {
                         appendTxt(ref rtBox, "Product", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -249,18 +305,39 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " Query", colorData);
                         } else {
                             string prodTxt = ASCIIEncoding.ASCII.GetString(data, 6, dataLen);
-                            appendTxt(ref rtBox, " " + prodTxt);
+                            appendTxt(ref rtBox, " " + prodTxt, colorData);
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x02: { // Report the network status of the device
-                        appendTxt(ref rtBox, "McuConf", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+
+                case McuSerPort | Ver0 | 0x02: // Query the network status of the device
+                case McuSerPort | Ver3 | 0x02: // Report the network status of the device
+                    {
+                        if (ver == 0) {
+                            appendTxt(ref rtBox, "Query Network Status", colorCmd);
+                        } else if (ver == 3) {
+                            appendTxt(ref rtBox, "Report Network Status", colorCmd);
+                        }
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 0) {
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        } else {
+                            string str = " Cmd";
+                            Color col = colorCmd;
+                            if (ver == 0) {
+                                str = " ACK";
+                                col = colorACK;
+                            } else if (ver == 3) {
+                                if (dec == eDecoder.eMcuSerPort) {
+                                    str = " ACK";
+                                    col = colorACK;
+                                }
+                            } else {
+                                str = " ???";
+                                col = colorErr;
+                            }
+                            appendTxt(ref rtBox, str, col);
+                        } else if (ver == 0 && dec == eDecoder.eMcuLowPower && dataLen == 1) {
                             int netState = data[6];
                             try {
                                 string netTxt = NetworkStates[netState];
@@ -269,11 +346,51 @@ namespace SniffUART {
                                 appendTxt(ref rtBox, " Wrong NetworkState=" + netState, colorErr);
                                 bErr = true;
                             }
+                        } else if (ver == 3 && dec == eDecoder.eMcuSerPort && (dataLen == 2 || dataLen == 3)) {
+                            int pinWiFiStatus = data[6];
+                            appendTxt(ref rtBox, " GPIO pins WiFiStatusLED=", colorType);
+                            appendTxt(ref rtBox, pinWiFiStatus.ToString(), colorData);
+                            int pinWiFiNetwork = data[7];
+                            appendTxt(ref rtBox, " WiFiNetworkReset=", colorType);
+                            appendTxt(ref rtBox, pinWiFiNetwork.ToString(), colorData);
+                            if (dataLen == 3) {
+                                int pinBluetoothStatus = data[8];
+                                appendTxt(ref rtBox, " BluetoothStatusLED=", colorType);
+                                appendTxt(ref rtBox, pinBluetoothStatus.ToString(), colorData);
+                            }
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                        }
+                    }
+                    break;
+
+                case McuLowPower | Ver0 | 0x02: // Report the network status of the device
+                    {
+                        appendTxt(ref rtBox, "Report Network Status", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (dataLen == 0) {
+                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                        } else if (dataLen == 1) {
+                            int netState = data[6];
+                            try {
+                                string netTxt = NetworkStates[netState];
+                                appendTxt(ref rtBox, " " + netTxt, colorData);
+                            } catch {
+                                appendTxt(ref rtBox, " Wrong NetworkState=" + netState, colorErr);
+                                bErr = true;
+                            }
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x03: { // Reset Wi-Fi
+
+                case McuLowPower | Ver0 | 0x03: // Reset Wi-Fi
+                    {
                         appendTxt(ref rtBox, "Reset Wi-Fi", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -284,9 +401,11 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x04: { // Reset Wi-Fi and select configuration mode
+
+                case McuLowPower | Ver0 | 0x04: // Reset Wi-Fi and select configuration mode
+                    {
                         appendTxt(ref rtBox, "WifiState", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -307,9 +426,11 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x05: { // Status Data
+
+                case McuLowPower | Ver0 | 0x05: // Status Data
+                    {
                         appendTxt(ref rtBox, "Status Data", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame( dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -329,7 +450,7 @@ namespace SniffUART {
                             int offset = 6; // start index to read DP units
                             // decode all DP units
                             while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, num, ref offset, ref data);
+                                bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
                             } // while
                             if (offset != (num - 1)) { // all eaten? => no
                                 appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
@@ -337,11 +458,13 @@ namespace SniffUART {
                             }
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x06:   // Obtain Local Time
-                case McuHomeKit | Ver0 | 0x1c:   // Obtain Local Time Response
-                case McuHomeKit | Ver3 | 0x1c: { // Obtain Local Time Cmd
+
+                case McuLowPower | Ver0 | 0x06: // Obtain Local Time 
+                case McuHomeKit | Ver0 | 0x1c:  // Obtain Local Time Response
+                case McuHomeKit | Ver3 | 0x1c:  // Obtain Local Time Cmd
+                    {
                         appendTxt(ref rtBox, "Obtain Local Time", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame( dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -372,10 +495,12 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x07:   // Wi-Fi functional test
-                case 0x30e: { // Wi-Fi functional test cmd
+
+                case McuSerPort | Ver3 | 0x0e: // Wi-Fi functional test cmd
+                case McuLowPower | Ver0 | 0x07: // Wi-Fi functional test
+                    {
                         appendTxt(ref rtBox, "Wi-Fi Func Test", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -404,9 +529,11 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x08: { // Report Data
+
+                case McuLowPower | Ver0 | 0x08: // Report Data
+                    {
                         appendTxt(ref rtBox, "Report Data", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -442,7 +569,7 @@ namespace SniffUART {
                             int offset = 13; // start index to read status of DP units
                             // decode all status of DP units
                             while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, num, ref offset, ref data);
+                                bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
                             } // while
                             if (offset != (num - 1)) { // all eaten? => no
                                 appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
@@ -453,9 +580,11 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                    case McuLowPower | Ver0 | 0x09: { // Send Module Command
+                    
+                case McuLowPower | Ver0 | 0x09: // Send Module Command
+                    {
                         appendTxt(ref rtBox, "Send Command", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -465,7 +594,7 @@ namespace SniffUART {
                             int offset = 6; // start index to read status of DP units
                             // decode all status of DP units
                             while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, num, ref offset, ref data);
+                                bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
                             } // while
                             if (offset != (num - 1)) { // all eaten? => no
                                 appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
@@ -473,9 +602,11 @@ namespace SniffUART {
                             }
                         }
                     } break;
-                    case McuLowPower | Ver0 | 0x0b: { // Query the signal strength of the currently connected router
+
+                case McuLowPower | Ver0 | 0x0b: // Query the signal strength of the currently connected router
+                        {
                         appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -504,10 +635,12 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x0a:   // Wi-Fi firmware upgrade
-                case McuLowPower | Ver0 | 0x0c: { // MCU firmware upgrading status
+                
+                case McuLowPower | Ver0 | 0x0a: // Wi-Fi firmware upgrade
+                case McuLowPower | Ver0 | 0x0c: // MCU firmware upgrading status
+                    {
                         appendTxt(ref rtBox, (cmd == 0x0a)? "Wi-Fi Firmware Upgrade" : "MCU Upgrading Status", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -527,9 +660,11 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x0d: { // Number Firmware Bytes
+
+                case McuLowPower | Ver0 | 0x0d: // Number Firmware Bytes
+                    {
                         appendTxt(ref rtBox, "Number Firmware Bytes", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -543,9 +678,11 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x0e: { // Packet Transfer
+
+                case McuLowPower | Ver0 | 0x0e: // Packet Transfer
+                    {
                         appendTxt(ref rtBox, "Packet Transfer", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -564,9 +701,11 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
-                case McuLowPower | Ver0 | 0x010: { // Obtain DP cache command && its answer (which is tricky to distinguish)
+                
+                case McuLowPower | Ver0 | 0x010: // Obtain DP cache command && its answer (which is tricky to distinguish)
+                    {
                         appendTxt(ref rtBox, "Obtain DP Cache", colorCmd);
-                        bErr |= checkFrame(ref rtBox, num, ref data);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
@@ -596,7 +735,7 @@ namespace SniffUART {
 
                                 // decode all status of DP units
                                 while (bErr == false && offset < (num - 1)) {
-                                    bErr |= decodeStatusDataUnits(ref rtBox, num, ref offset, ref data);
+                                    bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
                                 } // while
                                 if (offset != (num - 1)) { // all eaten? => no
                                     appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
@@ -608,8 +747,42 @@ namespace SniffUART {
                             bErr = true;
                         }
                     } break;
+
+                case McuSerPort | Ver0 | 0x37: // Notification of new feature setting ACK
+                case McuSerPort | Ver3 | 0x37: // Notification of new feature setting
+                    {
+                        appendTxt(ref rtBox, "Features", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (dec == eDecoder.eMcuSerPort && dataLen == 2) {
+                            int subCmd = data[6];
+                            appendTxt(ref rtBox, " SubCmd=", colorInfo);
+                            appendTxt(ref rtBox, subCmd.ToString("X2"), colorData);
+                            int result = data[7];
+                            try {
+                                string resultStr = ResultFeatures[result];
+                                appendTxt(ref rtBox, " " + resultStr, colorACK);
+                            } catch {
+                                appendTxt(ref rtBox, " Wrong Result=" + result.ToString("X2"), colorErr);
+                                bErr = true;
+                            }
+                        } else if (dec == eDecoder.eMcuSerPort && ver == 3 && dataLen > 2) {
+                            int subCmd = data[6];
+                            appendTxt(ref rtBox, " subCmd=", colorInfo);
+                            appendTxt(ref rtBox, subCmd.ToString("X2"), colorData);
+                            string prodTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                            appendTxt(ref rtBox, " " + prodTxt, colorData);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
                 default: {
-                        appendTxt(ref rtBox, "Unknown Version= " + ver.ToString() + " Cmd=" + cmd.ToString("0xX2"), colorErr);
+                        appendTxt(ref rtBox, "Unknown Msg= " + ver.ToString() + " Switch=0x" + sw.ToString("X4"), colorErr);
                         bErr = true;
                 } break;
             } // switch
@@ -620,7 +793,7 @@ namespace SniffUART {
                 appendTxt(ref rtBox, hex, colorErr);
             }
 
-            return rtBox;
+            return bErr;
         }
     }
 
