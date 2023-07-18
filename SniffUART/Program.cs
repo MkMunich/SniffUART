@@ -11,7 +11,7 @@ namespace SniffUART
         /// <summary>
         /// Der Haupteinstiegspunkt für die Anwendung.
         /// </summary>
-        [STAThread]
+        [STAThreadAttribute] // [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();

@@ -93,7 +93,7 @@
             this.SearchToolStripTextBox});
             this.MenuStripMain.Location = new System.Drawing.Point(0, 0);
             this.MenuStripMain.Name = "MenuStripMain";
-            this.MenuStripMain.Size = new System.Drawing.Size(1163, 27);
+            this.MenuStripMain.Size = new System.Drawing.Size(1164, 27);
             this.MenuStripMain.TabIndex = 0;
             this.MenuStripMain.Text = "menuMain";
             // 
@@ -364,11 +364,12 @@
             this.DGVData.Dock = System.Windows.Forms.DockStyle.Fill;
             this.DGVData.Location = new System.Drawing.Point(0, 27);
             this.DGVData.Name = "DGVData";
-            this.DGVData.Size = new System.Drawing.Size(1163, 586);
+            this.DGVData.Size = new System.Drawing.Size(1164, 544);
             this.DGVData.TabIndex = 1;
             this.DGVData.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DGVData_CellContentClick);
             this.DGVData.ColumnWidthChanged += new System.Windows.Forms.DataGridViewColumnEventHandler(this.DGVData_ColumnWidthChanged);
             this.DGVData.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.DGVData_RowEnter);
+            this.DGVData.KeyDown += new System.Windows.Forms.KeyEventHandler(this.DGVData_KeyDown);
             // 
             // ColPort
             // 
@@ -433,9 +434,9 @@
             this.toolStripStatusUART1,
             this.toolStripSplitButton1,
             this.toolStripStatusDeltaTime});
-            this.StatusStripMain.Location = new System.Drawing.Point(0, 591);
+            this.StatusStripMain.Location = new System.Drawing.Point(0, 549);
             this.StatusStripMain.Name = "StatusStripMain";
-            this.StatusStripMain.Size = new System.Drawing.Size(1163, 22);
+            this.StatusStripMain.Size = new System.Drawing.Size(1164, 22);
             this.StatusStripMain.TabIndex = 2;
             this.StatusStripMain.Text = "Main";
             // 
@@ -510,7 +511,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1163, 613);
+            this.ClientSize = new System.Drawing.Size(1164, 571);
             this.Controls.Add(this.StatusStripMain);
             this.Controls.Add(this.DGVData);
             this.Controls.Add(this.MenuStripMain);

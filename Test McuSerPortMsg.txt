@@ -1,0 +1,110 @@
+// Heartbeat
+55 aa 00 00 00 00 ff
+
+// Heartbeat MCU restarting
+55 aa 03 00 00 01 00 03
+
+// Heartbeat MCU running
+55 aa 03 00 00 01 01 04
+
+// Product Information Cmd
+55 aa 00 01 00 00 00
+
+// Product Information {"p":"AIp08kLIftb8x***","v":"1.0.0","m":1,"mt":10,"n":0,"ir":"5.12","low":0}
+55 aa 00 01 00 4c 7b 22 70 22 3a 22 41 49 70 30 38 6b 4c 49 66 74 62 38 78 2a 2a 2a 22 2c 22 76 22 3a 22 31 2e 30 2e 30 22 2c 22 6d 22 3a 31 2c 22 6d 74 22 3a 31 30 2c 22 6e 22 3a 30 2c 22 69 72 22 3a 22 35 2e 31 32 22 2c 22 6c 6f 77 22 3a 30 7d ca
+
+// Query Network Status Cmd
+55 aa 00 02 00 00 01
+
+// Report Network Status MCU uses network module
+55 aa 03 02 00 00 04
+
+// Report Network Status GPIO pins WiFiStatusLED=12 WiFiNetworkReset=13
+55 aa 03 02 00 02 0c 0d 1f
+
+// Features subCmd=00 {"mcu_ota":0,"abv":3,"buf":1024}
+55 aa 03 37 00 21 00 7b 22 6d 63 75 5f 6f 74 61 22 3a 30 2c 22 61 62 76 22 3a 33 2c 22 62 75 66 22 3a 31 30 32 34 7d ac
+
+// Features subCmd=00 Success
+55 aa 03 37 00 02 00 00 3b
+
+// Report Network Status Pairing in EZ mode (For Wi-Fi and Bluetooth LE combo module: Bluetooth is also in pairing mode)
+55 aa 00 03 00 01 00 03
+
+// Report Network Status ACK
+55 aa 03 03 00 00 05
+
+// Reset Wi-Fi Cmd
+55 aa 03 04 00 00 06
+
+// Reset Wi-Fi ACK
+55 aa 00 04 00 00 03
+
+// Set Wi-Fi Pairing EZ mode
+55 aa 03 05 00 01 00 08
+
+// Set Wi-Fi Pairing ACK
+55 aa 00 05 00 00 04
+
+// Send Command DP=3 Bool=True
+55 aa 00 06 00 05 03 01 00 01 01 10
+
+// Report Data DP=5 Value=30
+55 aa 03 07 00 08 05 02 00 04 00 00 00 1e 3a
+
+// Report Data DP=109 Bool=True DP=102 String="201804121507"
+55 aa 03 07 00 15 6d 01 00 01 01 66 03 00 0c 32 30 31 38 30 34 31 32 31 35 30 37 62
+
+// Report Status DP=1 Bool=True
+55 aa 03 22 00 05 02 01 00 01 01 2e
+
+// Report Status Success
+55 aa 00 23 00 01 01 24
+
+// Send Status SubCmd=0B Use local Time Date=22-02-02 18:16 DP=6 Bool=True
+55 aa 03 34 00 0d 0b 01 16 02 02 12 10 1b 06 01 00 01 01 af
+//incorrect example in Tuya spec 55 aa 03 34 00 16 0b 01 01 16 02 16 0b 16 11 02 02 04 00 00 00 64 03 04 01 03 40
+
+// Send Status SubCmd=0B Failure
+55 aa 00 34 00 02 0b 00 40
+
+// Query DP status Cmd
+55 aa 00 08 00 00 07
+
+// Start OTA update DataLen=26624
+55 aa 00 0a 00 04 00 00 68 00 75
+
+// Start OTA update 256 bytes
+55 aa 03 0a 00 01 00 0d
+
+// Transmit Package Offset=00112233 Data=01 02 03 04
+55 aa 00 0b 00 08 00 11 22 33 01 02 03 04 82
+
+// Transmit Package ACK
+55 aa 03 0b 00 00 0d
+
+// Get GMT Time Cmd
+55 aa 03 0c 00 00 0e
+
+// System Time Success Date=16-04-19 05:06 Week=2
+55 aa 00 1c 00 08 01 10 04 13 05 06 07 02 5f
+
+// Query Signal Strength Cmd
+55 aa 03 0e 00 00 10
+
+// Query Signal Strength failed error=SSID is not found
+55 aa 00 0e 00 02 00 00 0f
+
+// Get memory Cmd
+55 aa 03 0f 00 00 11
+
+// Get Memory DataLen=53328
+55 aa 00 0f 00 04 50 d0 00 00 32
+
+// Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010
+55 aa 00 21 00 2d 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 1e 59
+// Tuya msg above is incorrect, but the decoding is fault tolerant :-)
+
+// Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010 Parameter=w.humidity String=ABC
+55 aa 00 21 00 3c 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 0a 77 2e 68 75 6d 69 64 69 74 79 01 03 41 42 43 30
+

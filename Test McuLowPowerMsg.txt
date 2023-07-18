@@ -1,0 +1,98 @@
+// Product Query
+55 aa 00 01 00 00 00
+
+// Product {"p":"vHXEcqntLpkAlOsy","v":"1.0.0"}
+55 aa 00 01 00 24 7b 22 70 22 3a 22 76 48 58 45 63 71 6e 74 4c 70 6b 41 6c 4f 73 79 22 2c 22 76 22 3a 22 31 2e 30 2e 30 22 7d bf
+
+// Report Network Status Wi-Fi has been connected to the router and the cloud
+55 aa 00 02 00 01 04 06
+
+// Report Network Status ACK
+55 aa 00 02 00 00 01
+
+// Reset Wi-Fi Cmd
+55 aa 00 03 00 00 02
+
+// Wi-Fi State Enter AP configuration mode
+55 aa 00 04 00 01 01 05
+
+// Wi-Fi State ACK
+55 aa 00 04 00 00 03
+
+// Status Data DP=109 Bool=True
+55 aa 00 05 00 05 6d 01 00 01 01 79
+
+// Status Data DP=109 Bool=True DP=102 String="201804121507"
+55 aa 00 05 00 15 6d 01 00 01 01 66 03 00 0c 32 30 31 38 30 34 31 32 31 35 30 37 5d
+
+// Report Data Local time is valid Date=18-04-19 13:03 DP=109 Bool=True
+55 aa 00 08 00 0c 01 12 04 13 0d 03 1d 6d 01 00 01 01 da
+
+// Report Data Local time is invalid Date=18-04-19 13:04 DP=109 Bool=True
+55 aa 00 08 00 0c 00 12 04 13 0d 04 14 6d 01 00 01 01 d1
+
+// Report Data Local time is invalid Date=18-04-19 13:06 DP=109 Bool=True DP=102 String="201804121507"
+55 aa 00 08 00 1c 00 12 04 13 0d 06 04 6d 01 00 01 01 66 03 00 0c 32 30 31 38 30 34 31 32 31 35 30 37 a7
+
+// Send Command DP=3 Bool=True
+55 aa 00 09 00 05 03 01 00 01 01 13
+
+// Send Command ACK
+55 aa 03 09 00 00 0b
+
+// Obtain Local Time Cmd
+55 aa 00 06 00 00 05
+
+// Obtain Local Time successful Date=18-09-17 16:09 Week=1
+55 aa 00 06 00 08 01 12 09 11 10 09 05 01 59
+
+// Wi-Fi Func Test Cmd
+55 aa 00 07 00 00 06
+
+// Wi-Fi Func Test Success Signal=80
+55 aa 00 07 00 02 01 50 59
+
+// Wi-Fi Firmware Upgrade Cmd
+55 aa 00 0a 00 00 09
+
+// Wi-Fi Firmware Upgrade (Start to detect firmware upgrading) Do not power off
+55 aa 00 0a 00 01 00 0a
+
+// Wi-Fi Firmware Upgrade (No firmware to upgrade) Power off
+55 aa 00 0a 00 01 01 0b
+
+// MCU Upgrading Status Cmd
+55 aa 00 0c 00 00 0b
+
+// MCU Upgrading Status (Start to detect firmware upgrading) Do not power off
+55 aa 00 0c 00 01 00 0c
+
+// MCU Upgrading Status (No firmware to upgrade) Power off
+55 aa 00 0c 00 01 01 0d
+
+// Number of Firmware Bytes=26624
+55 aa 00 0d 00 04 00 00 68 00 78
+
+// Number of Firmware ACK
+55 aa 00 0d 00 00 0c
+
+// Packet Transfer Offset=00112233 Data=01 02 03 04
+55 aa 00 0e 00 08 00 11 22 33 01 02 03 04 85
+
+// Packet Transfer Offset=00000212
+55 aa 00 0e 00 04 00 00 02 12 25
+
+// Packet Transfer ACK
+55 aa 00 0e 00 00 0d
+
+// Query Signal Strength Cmd
+55 aa 00 0b 00 00 0a
+
+// Query Signal  Success Signal=80
+55 aa 00 0b 00 02 01 50 5D
+
+// Obtain DP Cache DPs=115,114,113
+55 AA 00 10 00 04 03 73 72 71 6C
+
+// Obtain DP Cache DP=115 Bool=True DP=114 Enum=1 DP=113 Value=30
+55 AA 00 10 00 14 01 03 73 01 00 01 01 72 04 00 01 01 71 02 00 04 00 00 00 1E AA

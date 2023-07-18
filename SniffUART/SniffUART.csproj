@@ -8,10 +8,11 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>SniffUART</RootNamespace>
     <AssemblyName>SniffUART</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -47,8 +48,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DecoderMcuHomeKit.cs" />
+    <Compile Include="DecoderMcuSerPort.cs" />
     <Compile Include="DataGridViewRichTextBoxColumn.cs" />
-    <Compile Include="DecodeMsg.cs" />
+    <Compile Include="Properties\DecodeMsg.cs" />
+    <Compile Include="DecoderMcuLowPower.cs" />
     <Compile Include="FormDecodeMessages.cs">
       <SubType>Form</SubType>
     </Compile>

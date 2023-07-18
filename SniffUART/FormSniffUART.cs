@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Documents;
 using System.Windows.Forms;
+using System.Windows.Shapes;
 using static System.Net.Mime.MediaTypeNames;
 using static System.Windows.Forms.LinkLabel;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -150,17 +151,19 @@ namespace SniffUART {
             };
             if (rfdlg.ShowDialog() == DialogResult.OK) {
                 string[] lines = System.IO.File.ReadAllLines(rfdlg.FileName);
+                int lineNr = 0;
                 foreach (string line in lines) {
-                    char[] sep = { '"', ';' };
-                    string[] cols = line.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                    lineNr++;
+                    string sLine = line.Trim('"');
+                    string[] cols = sLine.Split(new string[]{ "\";\"" }, StringSplitOptions.None);
                     if (cols.Length == 0)
                         continue;
                     string portName = cols[0];
                     string dateStr = cols[1];
                     string diffStr = cols[2];
                     string col = cols[3];
-                    object[] data;
-                    if (portName == "PortName") {
+                    object[] data = null;
+                    if (portName.IndexOf("PortName") >= 0 || portName.Length <= 2 || portName.IndexOf(";") >= 0 ) {
                         continue; // header has already been written
                     } else if (col.IndexOf("Open ") == 0) {
                         // log Start
@@ -168,10 +171,13 @@ namespace SniffUART {
                     } else {
                         // log Import
                         string[] hex = col.Split(' ');
-                        byte[] buf = hex.Select(value => Convert.ToByte(value, 16)).ToArray();
-                        data = new object[] { eLogType.eImport, portName, dateStr, diffStr, buf.Length, buf };
+                        try {
+                            byte[] buf = hex.Select(value => Convert.ToByte(value, 16)).ToArray();
+                            data = new object[] { eLogType.eImport, portName, dateStr, diffStr, buf.Length, buf };
+                        } catch { }
                     }
-                    _frm.AddData(data);
+                    if (data != null)
+                        _frm.AddData(data);
 
                 } // foreach
             }
@@ -364,7 +370,11 @@ namespace SniffUART {
                         int rcvNum = (int)data[4];
                         Byte[] buf = (Byte[])data[5];
                         string hex = BitConverter.ToString(buf, 0, rcvNum).Replace('-', ' ');
-                        string ascii = Encoding.ASCII.GetString(buf, 0, rcvNum);
+                        string ascii = "";
+                        for (int i=0; i < rcvNum; i++) {
+                            char c = (char)buf[i];
+                            if (char.IsControl(c)) { ascii += '.'; } else { ascii += c; };
+                        } // for
                         //:-( ascii = Regex.Replace(ascii, @"[^\u0000-\u007F]+", "."); // replace all non printable char by '.'
 
                         // decode Tuya message
@@ -480,6 +490,39 @@ namespace SniffUART {
                     wiFiHomeKitToolStripMenuItem.Checked = true;
                 break;
             } // switch
+        }
+
+        private void DGVData_KeyDown(object sender, KeyEventArgs e) {
+        /* error in .NET again?
+            if (e.Control && e.KeyCode == Keys.C) { // Ctrl+C
+                var array = new DataGridViewCell[DGVData.SelectedCells.Count];
+                DGVData.SelectedCells.CopyTo(array, 0);
+                Func<DataGridViewCell, int> byRow = r => r.RowIndex;
+                Func<DataGridViewCell, int> byCol= c => c.ColumnIndex;
+                var sorted = array.OrderBy(byCol).OrderBy(byRow);
+                int prevRow = -1;
+                var s = string.Join(";", sorted.Select(c => {
+                    string str = (string)c.Value;
+                    if (c.EditType.Name == "DataGridViewRichTextBoxEditingControl") { // convert rtf to plain text
+                        if (str != null && str.IndexOf(@"{\rtf1\") >= 0) { // cell contains rtf
+                            DataGridViewRichTextBoxEditingControl richBox = new DataGridViewRichTextBoxEditingControl();
+                            RichTextBox ctl = new RichTextBox();
+                            ctl.Rtf = str;
+                            str = ctl.Text;
+                        }
+                    }
+                    str = (str != null) ? str : "";
+                    if (prevRow == -1) // first row
+                        prevRow = c.RowIndex;
+                    else if (prevRow != c.RowIndex) {
+                        prevRow = c.RowIndex;
+                        str += "\n";
+                    }
+                    return str;
+                }));
+                System.Windows.Forms.Clipboard.SetText(s.Trim('\n'));
+            }
+        */
         }
     }
 }
