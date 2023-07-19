@@ -12,6 +12,7 @@ using System.Data.OleDb;
 namespace SniffUART {
     // refer to Tuya Serial Port Protocol
     // McuSerPort: https://developer.tuya.com/en/docs/iot/tuya-cloud-universal-serial-port-access-protocol?id=K9hhi0xxtn9cb#protocols
+    //             https://developer.tuya.com/en/docs/iot/weather-function-description?id=Ka6dcs2cw4avp
     // McuLowPower: https://developer.tuya.com/en/docs/iot/tuyacloudlowpoweruniversalserialaccessprotocol?id=K95afs9h4tjjh
     // McuHomeKit: https://developer.tuya.com/en/docs/iot/wifi-module-mcu-development-overview-for-homekit?id=Kaa8fvusmgapc
     internal static class DecodeMsg {

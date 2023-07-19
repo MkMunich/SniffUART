@@ -54,6 +54,7 @@ namespace SniffUART {
 
                     _frmMain.AddData(data);
                 } catch {
+                    // no code
                 }
 
                 // update GUI

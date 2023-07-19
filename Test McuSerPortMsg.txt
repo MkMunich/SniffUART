@@ -108,3 +108,78 @@
 // Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010 Parameter=w.humidity String=ABC
 55 aa 00 21 00 3c 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 0a 77 2e 68 75 6d 69 64 69 74 79 01 03 41 42 43 30
 
+// Enable weather services Parameter=w.humidity Parameter=w.pm25 Parameter=w.date.7
+55 aa 03 20 00 1b 0a 77 2e 68 75 6d 69 64 69 74 79 06 77 2e 70 6d 32 35 08 77 2e 64 61 74 65 2e 37 f8
+// the message givien by Tuya spec is wrong :-(
+
+// Enable weather services successful
+55 aa 00 20 00 02 01 00 22
+
+// Enable weather services ACK
+55 aa 00 21 00 00 20
+
+// Enable weather services successful Parameter=w.temp Value=00000023 Parameter=w.pm25 Value=00000011
+55 aa 00 21 00 1b 01 06 77 2e 74 65 6d 70 00 04 00 00 00 23 06 77 2e 70 6d 32 35 00 04 00 00 00 11 c8
+
+// Send Status SubCmd=03
+55 aa 03 34 00 01 03 3a
+
+// Send Status SubCmd=03 Success
+55 aa 00 34 00 02 03 00 38
+
+// Get Wi-Fi signal strength Cmd
+55 aa 03 24 00 00 26
+
+// Get Wi-Fi signal strength Signal=236
+55 aa 00 24 00 01 ec 10
+
+// Disable heartbeats Cmd
+55 aa 03 25 00 00 27
+
+// Disable heartbeats ACK
+55 aa 00 25 00 00 24
+
+// Pairing via serial port{"s":"xxx","p":"12345678","t":"zzz"}
+55 aa 03 2a 00 24 7b 22 73 22 3a 22 78 78 78 22 2C 22 70 22 3a 22 31 32 33 34 35 36 37 38 22 2c 22 74 22 3a 22 7a 7a 7a 22 7d B7
+
+// Pairing via serial port The module is not waiting for pairing
+55 aa 00 2a 00 01 01 2b
+
+// Network Status Cmd
+55 aa 03 2b 00 00 2d
+
+// Network Status The device is connected to the cloud
+55 aa 00 2b 00 01 04 2f
+
+// Test Wi-Fi{"ssid":"xxx","password":"12345678"}
+55 aa 03 2c 00 24 7b 22 73 73 69 64 22 3a 22 78 78 78 22 2c 22 70 61 73 73 77 6f 72 64 22 3a 22 31 32 33 34 35 36 37 38 22 7d 2c
+
+// Test Wi-Fi success
+55 aa 00 2c 00 01 01 2d
+
+// Get MAC Cmd
+55 aa 03 2d 00 00 2f
+
+// Get MAC Addr= 00:50:8A:06:E3:A2:D9
+55 aa 00 2d 00 07 00 50 8a 06 e3 a2 d9 71
+
+// IR Status IR code is being sent
+55 aa 00 2e 00 01 00 2e
+
+// IR Status ACK
+55 aa 03 2e 00 00 30
+
+// IR Test Cmd
+55 aa 03 2f 00 00 31
+
+// IR Test Success
+55 aa 00 2f 00 01 00 2f
+
+// Map data streaming Id=007B 00000000 01020304
+55 aa 03 28 00 0a 00 7b 00 00 00 00 01 02 03 04 b9
+
+// Map data streaming Success
+55 aa 00 28 00 01 00 28
+
+// 
+
