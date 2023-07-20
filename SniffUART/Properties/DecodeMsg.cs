@@ -57,7 +57,9 @@ namespace SniffUART {
 
         // color definitions of appearance
         public static Color colorErr = Color.Red; // error
-        public static Color colorCmd = Color.Gray; // command
+        public static Color colorCmd = Color.DarkGray; // command
+        public static Color colorSubCmd = Color.Gray; // subcommand
+        public static Color colorParam = Color.DarkSalmon; // parameter
         public static Color colorDP = Color.Plum; // DP unit number
         public static Color colorType = Color.Goldenrod; // DP type
         public static Color colorData = Color.Blue; // DP data

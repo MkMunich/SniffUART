@@ -31,7 +31,15 @@ namespace SniffUART {
         private PortHandler[] _ports = new PortHandler[2];
 
         // types of logging to DGV
-        public enum eLogType { eStart, eData, eImport };
+        public enum eLogType { eStart, eData, eImport, eDecoder };
+
+        public static Dictionary<int, string> Decoder = new Dictionary<int, string>
+{
+            { 0x00, "McuSerPort" },
+            { 0x01, "McuLowPower" },
+            { 0x02, "McuHomekit" },
+        };
+
 
         public FormMain() {
             InitializeComponent();
@@ -96,6 +104,8 @@ namespace SniffUART {
             // write header (for Excel csv import)
             object[] row = new object[] { "PortName", "Time", "DeltaTime", "Hex", "ASCII", "Message" };
             _frm.DGVData.Rows.Add(row);
+
+            logDecoder(_mcuProtocol);
         }
 
         private void UART0ToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -165,11 +175,11 @@ namespace SniffUART {
                     object[] data = null;
                     if (portName.IndexOf("PortName") >= 0 || portName.Length <= 2 || portName.IndexOf(";") >= 0 ) {
                         continue; // header has already been written
-                    } else if (col.IndexOf("Open ") == 0) {
-                        // log Start
+                    } else if (col.IndexOf("Open ") == 0) { // log Start
                         data = new object[] { eLogType.eStart, portName, dateStr, diffStr, col };
-                    } else {
-                        // log Import
+                    } else if (portName.IndexOf("Decoder Mcu") == 0) { // log Decoder
+                        data = new object[] { eLogType.eDecoder, portName, dateStr, diffStr };
+                    } else { // log Import
                         string[] hex = col.Split(' ');
                         try {
                             byte[] buf = hex.Select(value => Convert.ToByte(value, 16)).ToArray();
@@ -346,17 +356,19 @@ namespace SniffUART {
             // below is executed in the thread of Form
             string portName = "";
             string uartName = "";
+            eLogType logType = (eLogType)data[0];
             Type type = data[1].GetType();
-            if (type.Name == "Int32") {
-                int portNo = (int)data[1];
-                portName = _portName[portNo];
-                uartName = _uarts[portNo].PortName;
-            } else {
-                portName = uartName = (string)data[1];
+            if (logType != eLogType.eDecoder) {
+                if (type.Name == "Int32") {
+                    int portNo = (int)data[1];
+                    portName = _portName[portNo];
+                    uartName = _uarts[portNo].PortName;
+                } else {
+                    portName = uartName = (string)data[1];
+                }
             }
 
             object[] row = null; // the row columns of DGV
-            eLogType logType = (eLogType)data[0];
             switch (logType) {
                 case eLogType.eStart: {
                         string startTxt = "Open " + uartName;
@@ -383,6 +395,12 @@ namespace SniffUART {
 
                         row = new object[] { portName, dtStr, tsStr, hex, ascii, rt.Rtf };
                     } break;
+                case eLogType.eDecoder: {
+                        string decoderTxt = (string)data[1];
+                        string dtStr = (string)data[2];
+                        row = new object[] { decoderTxt, dtStr, dtStr, "", "", "" };
+                    }
+                    break;
             } // switch
 
             _frm.DGVData.Rows.Add(row);
@@ -468,11 +486,23 @@ namespace SniffUART {
             return 1; // default
         }
 
+        private void logDecoder(int tag) {
+            DateTime date = DateTime.Now;
+            string dateStr = date.ToString("yy-MM-dd HH:mm:ss.ff");
+            string decoderStr = "Decoder " + Decoder[tag];
+            object[] data = new object[] { eLogType.eDecoder, decoderStr, dateStr };
+            _frm.AddData(data);
+        }
+
         private void McuProtocolToolStripMenuItem_Click(object sender, EventArgs e) {
             object obj= ((ToolStripMenuItem)sender).Tag.ToString();
             int tag;
             int.TryParse(obj.ToString(), out tag);
             FormMain._mcuProtocol = tag;
+
+            // log Decoder change
+            logDecoder(tag);
+
             switch (tag) {
                 case 0: // Serial Communication Protocol
                     serialCommunicationProtocolToolStripMenuItem.Checked = true;

@@ -63,6 +63,12 @@ namespace SniffUART {
             { 0x03, "IR learning is completed" },
         };
 
+        public static Dictionary<int, string> MapMethod = new Dictionary<int, string>
+        {
+            { 0x00, "The map data is accumulated" },
+            { 0x01, "The map data is cleared" },
+        };
+
 
         // refer to Tuya Serial Port Protocol
         // McuSerPort: https://developer.tuya.com/en/docs/iot/tuya-cloud-universal-serial-port-access-protocol?id=K9hhi0xxtn9cb#protocols
@@ -144,14 +150,14 @@ namespace SniffUART {
                             appendTxt(ref rtBox, str, col);
                         } else if (ver == 3 && (dataLen == 2 || dataLen == 3)) {
                             int pinWiFiStatus = data[6];
-                            appendTxt(ref rtBox, " GPIO pins WiFiStatusLED=", colorType);
+                            appendTxt(ref rtBox, " GPIO pins WiFiStatusLED=", colorParam);
                             appendTxt(ref rtBox, pinWiFiStatus.ToString(), colorData);
                             int pinWiFiNetwork = data[7];
-                            appendTxt(ref rtBox, " WiFiNetworkReset=", colorType);
+                            appendTxt(ref rtBox, " WiFiNetworkReset=", colorParam);
                             appendTxt(ref rtBox, pinWiFiNetwork.ToString(), colorData);
                             if (dataLen == 3) {
                                 int pinBluetoothStatus = data[8];
-                                appendTxt(ref rtBox, " BluetoothStatusLED=", colorType);
+                                appendTxt(ref rtBox, " BluetoothStatusLED=", colorParam);
                                 appendTxt(ref rtBox, pinBluetoothStatus.ToString(), colorData);
                             }
                         } else {
@@ -340,7 +346,7 @@ namespace SniffUART {
                             }
                         } else if (dataLen == 4) {
                             int val = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
-                            appendTxt(ref rtBox, " DataLen=", colorType);
+                            appendTxt(ref rtBox, " DataLen=", colorParam);
                             appendTxt(ref rtBox, val.ToString(), colorData);
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
@@ -361,11 +367,11 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " ACK", colorACK);
                         } else if (dataLen >= 4) {
                             int offset = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
-                            appendTxt(ref rtBox, " Offset=", colorType);
+                            appendTxt(ref rtBox, " Offset=0x", colorType);
                             appendTxt(ref rtBox, offset.ToString("X8"), colorData);
 
                             // data bytes
-                            appendTxt(ref rtBox, " Data=", colorType);
+                            appendTxt(ref rtBox, " Data=", colorParam);
                             string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
                             appendTxt(ref rtBox, " " + hex, colorData);
                         } else {
@@ -413,7 +419,7 @@ namespace SniffUART {
                                 appendTxt(ref rtBox, " Success", colorACK);
 
                                 int signal = data[7];
-                                appendTxt(ref rtBox, " Signal=", colorType);
+                                appendTxt(ref rtBox, " Signal=", colorParam);
                                 appendTxt(ref rtBox, signal.ToString(), colorData);
                             } else {
                                 appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
@@ -438,7 +444,7 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " Cmd", colorCmd);
                         } else if (dataLen == 4) {
                             int val = (data[9] << 24) + (data[8] << 16) + (data[7] << 8) + data[6];
-                            appendTxt(ref rtBox, " DataLen=", colorType);
+                            appendTxt(ref rtBox, " DataLen=", colorParam);
                             appendTxt(ref rtBox, val.ToString(), colorData);
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
@@ -448,13 +454,16 @@ namespace SniffUART {
                     break;
 
                 case Ver0 | 0x1c: // System time
+                case Ver3 | 0x1c: // System time
                     {
                         appendTxt(ref rtBox, "System Time", colorCmd);
                         bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 8) {
+                        if (dataLen == 0) {
+                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                        } else if (dataLen == 8) {
                             int obtainFlag = data[6];
                             if (obtainFlag == 0) {
                                 appendTxt(ref rtBox, " failed", colorErr);
@@ -473,9 +482,9 @@ namespace SniffUART {
                             int week = data[13];
                             try {
                                 DateTime date = new DateTime(year, month, day, hour, minute, second);
-                                appendTxt(ref rtBox, " Date=", colorType);
+                                appendTxt(ref rtBox, " Date=", colorParam);
                                 appendTxt(ref rtBox, date.ToString("yy-MM-dd HH:mm"), colorData);
-                                appendTxt(ref rtBox, " Week=", colorType);
+                                appendTxt(ref rtBox, " Week=", colorParam);
                                 appendTxt(ref rtBox, week.ToString(), colorData);
                             } catch {
                                 appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
@@ -545,14 +554,14 @@ namespace SniffUART {
                                 int tl = 0;
                                 if (offset + l < (num - 1)) {
                                     string str = System.Text.Encoding.UTF8.GetString(data, offset + 1, l);
-                                    appendTxt(ref rtBox, " Parameter=", colorType);
+                                    appendTxt(ref rtBox, " Parameter=", colorParam);
                                     appendTxt(ref rtBox, str, colorData);
                                     if (cmd == 0x21) {
                                         idx += 2;
                                         byte t = data[offset + l + 1];
                                         tl = data[offset + l + 2];
                                         if (t == 0) { // int
-                                            appendTxt(ref rtBox, " Value=", colorType);
+                                            appendTxt(ref rtBox, " Value=0x", colorParam);
                                             switch (tl) {
                                                 case 1: {
                                                         int val = data[idx++];
@@ -577,7 +586,7 @@ namespace SniffUART {
                                             } // switch
                                         } else if (t == 1) { // string
                                             string parStr = System.Text.Encoding.UTF8.GetString(data, idx, tl);
-                                            appendTxt(ref rtBox, " String=", colorType);
+                                            appendTxt(ref rtBox, " String=", colorParam);
                                             appendTxt(ref rtBox, parStr, colorData);
                                             idx += l;
                                         } else {
@@ -664,7 +673,7 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " Cmd", colorCmd);
                         } else if (dataLen == 1) {
                             int signal = data[6];
-                            appendTxt(ref rtBox, " Signal=", colorType);
+                            appendTxt(ref rtBox, " Signal=", colorParam);
                             appendTxt(ref rtBox, signal.ToString(), colorData);
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
@@ -694,10 +703,10 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | 0x28: // Response Map data streaming
-                case Ver3 | 0x28: // Map data streaming
+                case Ver0 | 0x28: // Response Map streaming for robot vacuum
+                case Ver3 | 0x28: // Map streaming for robot vacuum
                     {
-                        appendTxt(ref rtBox, "Map data streaming", colorCmd);
+                        appendTxt(ref rtBox, "Map data streaming for robot vacuum", colorCmd);
                         bErr |= checkFrame(dec, ref rtBox, num, ref data);
                         if (bErr)
                             break;
@@ -708,17 +717,17 @@ namespace SniffUART {
                                 string resultStr = MapDataResponse[netDataResp];
                                 appendTxt(ref rtBox, " " + resultStr, colorData);
                             } catch {
-                                appendTxt(ref rtBox, " Wrong MapDataResponse=" + netDataResp.ToString("X2"), colorErr);
+                                appendTxt(ref rtBox, " Wrong MapDataResponse=0x" + netDataResp.ToString("X2"), colorErr);
                                 bErr = true;
                             }
                         } else if (dataLen >= 6) {
                             int mapId = (data[6] << 8) + data[7];
-                            appendTxt(ref rtBox, " Id=", colorDP);
+                            appendTxt(ref rtBox, " Id=0x", colorDP);
                             appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
                             int offset = 8;
                             while (!bErr && offset < (num - 4)) {
                                 int dataOffset = (data[offset] << 24) + (data[offset + 1] << 16) + (data[offset + 2] << 8) + data[offset + 3];
-                                appendTxt(ref rtBox, " " + dataOffset.ToString("X8"), colorData);
+                                appendTxt(ref rtBox, " 0x" + dataOffset.ToString("X8"), colorData);
                                 offset += 4;
                             } // while
                             if (offset != (num - 1)) { // all eaten? => no
@@ -746,7 +755,7 @@ namespace SniffUART {
                                 string resultStr = ResultPairing[resPairing];
                                 appendTxt(ref rtBox, " " + resultStr, colorData);
                             } catch {
-                                appendTxt(ref rtBox, " Wrong ResultPairing=" + resPairing.ToString("X2"), colorErr);
+                                appendTxt(ref rtBox, " Wrong ResultPairing=0x" + resPairing.ToString("X2"), colorErr);
                                 bErr = true;
                             }
                         } else if (dataLen > 0) {
@@ -775,7 +784,7 @@ namespace SniffUART {
                                 string resultStr = NetworkStates[netState];
                                 appendTxt(ref rtBox, " " + resultStr, colorData);
                             } catch {
-                                appendTxt(ref rtBox, " Wrong NetworkState=" + netState.ToString("X2"), colorErr);
+                                appendTxt(ref rtBox, " Wrong NetworkState=0x" + netState.ToString("X2"), colorErr);
                                 bErr = true;
                             }
                         } else {
@@ -823,7 +832,7 @@ namespace SniffUART {
                         if (dataLen == 0) {
                             appendTxt(ref rtBox, " Cmd", colorCmd);
                         } else if (dataLen == 7) {
-                            appendTxt(ref rtBox, " Addr=", colorDP);
+                            appendTxt(ref rtBox, " Addr=", colorParam);
                             int offset = 6;
                             string macStr = "";
                             while (!bErr && offset < (num - 1)) {
@@ -858,7 +867,7 @@ namespace SniffUART {
                                 string statusStr = IRStatus[irStatus];
                                 appendTxt(ref rtBox, " " + statusStr, colorData);
                             } catch {
-                                appendTxt(ref rtBox, " Wrong IRStatus=" + irStatus.ToString("X2"), colorErr);
+                                appendTxt(ref rtBox, " Wrong IRStatus=0x" + irStatus.ToString("X2"), colorErr);
                                 bErr = true;
                             }
                         } else {
@@ -903,27 +912,138 @@ namespace SniffUART {
                             break;
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 1) {
-                            int netDataResp = data[6];
+                            int respStatus = data[6];
+                            if (respStatus == 0) {
+                                appendTxt(ref rtBox, " Success", colorACK);
+                            } else if (respStatus == 1) {
+                                appendTxt(ref rtBox, " Failure", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                            }
+                        } else if (dataLen >= 9) {
+                            int mapSrvProt = data[6];
+                            if (mapSrvProt == 0) {
+                                appendTxt(ref rtBox, " Protocol=0x", colorParam);
+                                appendTxt(ref rtBox, mapSrvProt.ToString("X2"), colorData);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong MapSrvProt=" + mapSrvProt, colorErr);
+                            }
+                            int mapId = (data[6] << 8) + data[7];
+                            appendTxt(ref rtBox, " Id=0x", colorParam);
+                            appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
+                            int subMapId = data[8];
+                            appendTxt(ref rtBox, " SubMapId=0x", colorParam);
+                            appendTxt(ref rtBox, subMapId.ToString("X2"), colorData);
+                            int method = data[9];
                             try {
-                                string resultStr = MapDataResponse[netDataResp];
-                                appendTxt(ref rtBox, " " + resultStr, colorData);
+                                string methodStr = MapMethod[method];
+                                appendTxt(ref rtBox, " " + methodStr, colorData);
                             } catch {
-                                appendTxt(ref rtBox, " Wrong MapDataResponse=" + netDataResp.ToString("X2"), colorErr);
+                                appendTxt(ref rtBox, " Wrong Result=0x" + method.ToString("X2"), colorErr);
                                 bErr = true;
                             }
-                        } else if (dataLen >= 6) {
-                            int mapId = (data[6] << 8) + data[7];
-                            appendTxt(ref rtBox, " Id=", colorDP);
-                            appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
-                            int offset = 8;
-                            while (!bErr && offset < (num - 4)) {
-                                int dataOffset = (data[offset] << 24) + (data[offset + 1] << 16) + (data[offset + 2] << 8) + data[offset + 3];
-                                appendTxt(ref rtBox, " " + dataOffset.ToString("X8"), colorData);
-                                offset += 4;
-                            } // while
-                            if (offset != (num - 1)) { // all eaten? => no
-                                appendTxt(ref rtBox, " Wrong Map data offset=" + offset, colorErr);
-                                bErr = true;
+                            int mapOffset = (data[10] << 24) + (data[11] << 16) + (data[12] << 8) + data[13];
+                            appendTxt(ref rtBox, " 0x" + mapOffset.ToString("X8"), colorData);
+                            if (dataLen >= 9) {
+                                string hex = BitConverter.ToString(data, 14, dataLen - 9).Replace('-', ' ');
+                                appendTxt(ref rtBox, hex, colorData);
+                            }
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | 0x33: // Cmd RF learning
+                case Ver3 | 0x33: // Report RF learning
+                    {
+                        appendTxt(ref rtBox, (ver == 0) ? "RF Learning" : "Report RF learning", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (dataLen > 0) {
+                            int subCmd = data[6];
+                            if (subCmd == 1) {
+                                appendTxt(ref rtBox, " SubCmd=" + subCmd.ToString(), colorSubCmd);
+
+                                if (dataLen == 2) {
+                                    int learnStatus = data[7];
+                                    if (learnStatus == 1) {
+                                        appendTxt(ref rtBox, " enter RF learning", colorData);
+                                    } else if (learnStatus == 2) {
+                                        appendTxt(ref rtBox, " exit RF learning", colorData);
+                                    } else {
+                                        appendTxt(ref rtBox, " Wrong LearnStatus=" + learnStatus, colorErr);
+                                    }
+                                } else if (dataLen == 3) {
+                                    int learnStatus = data[7];
+                                    if (learnStatus == 1) {
+                                        appendTxt(ref rtBox, " enter RF learning", colorData);
+                                    } else {
+                                        appendTxt(ref rtBox, " Wrong LearnStatus=" + learnStatus, colorErr);
+                                    }
+                                    int respStatus = data[8];
+                                    if (respStatus == 0) {
+                                        appendTxt(ref rtBox, " Success", colorACK);
+                                    } else if (respStatus == 1) {
+                                        appendTxt(ref rtBox, " Failure", colorErr);
+                                    } else if (respStatus == 2) {
+                                        appendTxt(ref rtBox, " Exit the RF learning status", colorErr);
+                                    } else {
+                                        appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                                    }
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                                    bErr = true;
+                                }
+                            } else if (subCmd == 2) {
+                                appendTxt(ref rtBox, " SubCmd=" + subCmd.ToString(), colorSubCmd);
+
+                                if (dataLen == 2) {
+                                    int respStatus = data[7];
+                                    if (respStatus == 0) {
+                                        appendTxt(ref rtBox, " Success", colorACK);
+                                    } else if (respStatus == 1) {
+                                        appendTxt(ref rtBox, " Failure", colorErr);
+                                    } else {
+                                        appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                                    }
+                                } else if (dataLen >= 6) {
+                                    int mapId = (data[6] << 8) + data[7];
+                                    appendTxt(ref rtBox, " Id=0x", colorDP);
+                                    appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
+                                    int offset = 8;
+                                    while (!bErr && offset < (num - 4)) {
+                                        int dataOffset = (data[offset] << 24) + (data[offset + 1] << 16) + (data[offset + 2] << 8) + data[offset + 3];
+                                        appendTxt(ref rtBox, " 0x" + dataOffset.ToString("X8"), colorData);
+                                        offset += 4;
+                                    } // while
+                                    if (offset != (num - 1)) { // all eaten? => no
+                                        appendTxt(ref rtBox, " Wrong Map data offset=" + offset, colorErr);
+                                        bErr = true;
+                                    }
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                                    bErr = true;
+                                }
+                            } else if (subCmd == 3) {
+                                appendTxt(ref rtBox, " SubCmd=" + subCmd.ToString(), colorSubCmd);
+
+                                int respStatus = data[7];
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " Failure", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                                }
+                                appendTxt(ref rtBox, " Learned=", colorParam);
+                                string hex = BitConverter.ToString(data, 8, dataLen - 2).Replace('-', ' ');
+                                appendTxt(ref rtBox, hex, colorData);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong SubCmd=" + subCmd.ToString(), colorErr);
                             }
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
@@ -940,74 +1060,85 @@ namespace SniffUART {
                         if (bErr)
                             break;
                         int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 1) {
-                            int subCmd = data[6];
-                            appendTxt(ref rtBox, " SubCmd=", colorInfo);
-                            appendTxt(ref rtBox, subCmd.ToString("X2"), colorCmd);
-                        } else if (dataLen == 2) {
-                            int subCmd = data[6];
-                            appendTxt(ref rtBox, " SubCmd=", colorInfo);
-                            appendTxt(ref rtBox, subCmd.ToString("X2"), colorData);
 
-                            int respStatus = data[7];
-                            if (subCmd == 0x0b) {
-                                if (respStatus == 0) {
-                                    appendTxt(ref rtBox, " Failure", colorErr);
-                                } else if (respStatus == 1) {
-                                    appendTxt(ref rtBox, " Success", colorACK);
-                                } else if (respStatus == 2) {
-                                    appendTxt(ref rtBox, " Invalid Data", colorErr);
+                        if (dataLen >= 1) {
+                            int subCmd = data[6];
+                            appendTxt(ref rtBox, " SubCmd=" + subCmd.ToString(), colorSubCmd);
+
+                            if (dataLen >= 2) {
+                                int respStatus = data[7];
+                                if (subCmd == 0x03) {
+                                    if (respStatus == 0) {
+                                        appendTxt(ref rtBox, " Success", colorACK);
+                                    } else if (respStatus == 1) {
+                                        appendTxt(ref rtBox, " Failure", colorErr);
+                                    } else {
+                                        appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                                    }
+                                } else if (subCmd == 0x06 && dataLen == 4) {
+                                    int sucFlag = data[7];
+                                    if (sucFlag == 0) {
+                                        appendTxt(ref rtBox, " Success", colorACK);
+                                    } else if (sucFlag == 1) {
+                                        appendTxt(ref rtBox, " The map streaming service is not enabled", colorErr);
+                                    } else if (sucFlag == 2) {
+                                        appendTxt(ref rtBox, " Failed to get the session ID", colorErr);
+                                    } else {
+                                        appendTxt(ref rtBox, " Wrong SuccessFlag=" + sucFlag, colorErr);
+                                        bErr = true;
+                                    }
+                                    int mapId = (data[8] << 8) + data[9];
+                                    appendTxt(ref rtBox, " Id=0x", colorDP);
+                                    appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
+                                } else if (subCmd == 0x0b) {
+                                    if (respStatus == 0) {
+                                        appendTxt(ref rtBox, " Failure", colorErr);
+                                    } else if (respStatus == 1) {
+                                        appendTxt(ref rtBox, " Success", colorACK);
+                                    } else if (respStatus == 2) {
+                                        appendTxt(ref rtBox, " Invalid Data", colorErr);
+                                    } else {
+                                        appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                                    }
+                                    if (dataLen >= 9) {
+                                        int resTime = data[8];
+                                        try {
+                                            string resultStr = ResultTime[resTime];
+                                            appendTxt(ref rtBox, " " + resultStr, colorData);
+                                        } catch {
+                                            appendTxt(ref rtBox, " Wrong ResultTime=" + resTime.ToString("X2"), colorErr);
+                                            bErr = true;
+                                        }
+
+                                        int year = data[9] + 2000;
+                                        int month = data[10];
+                                        int day = data[11];
+                                        int hour = data[12];
+                                        int minute = data[13];
+                                        int second = data[14];
+                                        try {
+                                            DateTime date = new DateTime(year, month, day, hour, minute, second);
+                                            appendTxt(ref rtBox, " Date=", colorParam);
+                                            appendTxt(ref rtBox, date.ToString("yy-MM-dd HH:mm"), colorData);
+                                        } catch {
+                                            string hex = BitConverter.ToString(data, 10, 5).Replace('-', ' ');
+                                            appendTxt(ref rtBox, " Wrong DateTime Parameter=" + hex, colorErr);
+                                            bErr = true;
+                                        }
+
+                                        // decode all status of DP units
+                                        int offset = 15; // start index to read status of DP units
+                                        while (bErr == false && offset < (num - 1)) {
+                                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                                        } // while
+                                        if (offset != (num - 1)) { // all eaten? => no
+                                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                                            bErr = true;
+                                        }
+                                    }
                                 } else {
-                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                                    appendTxt(ref rtBox, " Wrong SubCmd=" + subCmd.ToString(), colorErr);
                                 }
-                            } else if (subCmd == 0x03) {
-                                if (respStatus == 0) {
-                                    appendTxt(ref rtBox, " Success", colorACK);
-                                } else if (respStatus == 1) {
-                                    appendTxt(ref rtBox, " Failure", colorErr);
-                                } else {
-                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                                }
-                            } else {
-                                appendTxt(ref rtBox, " Wrong SubCmd=" + subCmd.ToString("X2"), colorErr);
-                            }
-                        } else if (dataLen >= 5) {
-                            int subCmd = data[6];
-                            appendTxt(ref rtBox, " SubCmd=", colorInfo);
-                            appendTxt(ref rtBox, subCmd.ToString("X2"), colorType);
-
-                            int resTime = data[7];
-                            try {
-                                string resultStr = ResultTime[resTime];
-                                appendTxt(ref rtBox, " " + resultStr, colorData);
-                            } catch {
-                                appendTxt(ref rtBox, " Wrong ResultTime=" + resTime.ToString("X2"), colorErr);
-                                bErr = true;
-                            }
-
-                            int year = data[8] + 2000;
-                            int month = data[9];
-                            int day = data[10];
-                            int hour = data[11];
-                            int minute = data[12];
-                            int second = data[13];
-                            try {
-                                DateTime date = new DateTime(year, month, day, hour, minute, second);
-                                appendTxt(ref rtBox, " Date=", colorType);
-                                appendTxt(ref rtBox, date.ToString("yy-MM-dd HH:mm"), colorData);
-                            } catch {
-                                appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
-                                bErr = true;
-                            }
-
-                            // decode all status of DP units
-                            int offset = 14; // start index to read status of DP units
-                            while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
-                            } // while
-                            if (offset != (num - 1)) { // all eaten? => no
-                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                                bErr = true;
                             }
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
@@ -1026,20 +1157,18 @@ namespace SniffUART {
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 2) {
                             int subCmd = data[6];
-                            appendTxt(ref rtBox, " SubCmd=", colorInfo);
-                            appendTxt(ref rtBox, subCmd.ToString("X2"), colorData);
+                            appendTxt(ref rtBox, " SubCmd=" + subCmd.ToString(), colorSubCmd);
                             int result = data[7];
                             try {
                                 string resultStr = ResultFeatures[result];
                                 appendTxt(ref rtBox, " " + resultStr, colorData);
                             } catch {
-                                appendTxt(ref rtBox, " Wrong Result=" + result.ToString("X2"), colorErr);
+                                appendTxt(ref rtBox, " Wrong Result=0x" + result.ToString("X2"), colorErr);
                                 bErr = true;
                             }
                         } else if (dec == eDecoder.eMcuSerPort && ver == 3 && dataLen > 2) {
                             int subCmd = data[6];
-                            appendTxt(ref rtBox, " subCmd=", colorInfo);
-                            appendTxt(ref rtBox, subCmd.ToString("X2"), colorData);
+                            appendTxt(ref rtBox, " SubCmd=" + subCmd.ToString(), colorSubCmd);
                             string prodTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
                             appendTxt(ref rtBox, " " + prodTxt, colorData);
                         } else {

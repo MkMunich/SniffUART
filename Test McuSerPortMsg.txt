@@ -61,11 +61,14 @@
 // Report Status Success
 55 aa 00 23 00 01 01 24
 
-// Send Status SubCmd=0B Use local Time Date=22-02-02 18:16 DP=6 Bool=True
-55 aa 03 34 00 0d 0b 01 16 02 02 12 10 1b 06 01 00 01 01 af
-//incorrect example in Tuya spec 55 aa 03 34 00 16 0b 01 01 16 02 16 0b 16 11 02 02 04 00 00 00 64 03 04 01 03 40
+// Send Status SubCmd=11 Success Use GMT Date=22-02-18 16:27 DP=1 Bool=True
+55 aa 03 34 00 0e 0b 01 02 16 02 12 10 1b 06 01 01 00 01 01 b1
 
-// Send Status SubCmd=0B Failure
+// Send Status SubCmd=11 Success Use local Time Date=22-02-22 11:22 DP=2 Value=100 DP=3 Enum=3
+55 aa 03 34 00 16 0b 01 01 16 02 16 0b 16 21 02 02 00 04 00 00 00 64 03 04 00 01 03 40
+//incorrect example in Tuya spec: 55 aa 03 34 00 16 0b 01 01 16 02 16 0b 16 11 02 02 04 00 00 00 64 03 04 01 03 40
+
+// Send Status SubCmd=11 Failure
 55 aa 00 34 00 02 0b 00 40
 
 // Query DP status Cmd
@@ -85,6 +88,9 @@
 
 // Get GMT Time Cmd
 55 aa 03 0c 00 00 0e
+
+// System Time Cmd
+55 aa 03 1c 00 00 1e
 
 // System Time Success Date=16-04-19 05:06 Week=2
 55 aa 00 1c 00 08 01 10 04 13 05 06 07 02 5f
@@ -121,11 +127,14 @@
 // Enable weather services successful Parameter=w.temp Value=00000023 Parameter=w.pm25 Value=00000011
 55 aa 00 21 00 1b 01 06 77 2e 74 65 6d 70 00 04 00 00 00 23 06 77 2e 70 6d 32 35 00 04 00 00 00 11 c8
 
-// Send Status SubCmd=03
+// Send Status SubCmd=3
 55 aa 03 34 00 01 03 3a
 
-// Send Status SubCmd=03 Success
+// Send Status SubCmd=3 Success
 55 aa 00 34 00 02 03 00 38
+
+// Send Status SubCmd=6 Success Id=0x0000
+55 aa 00 34 00 04 06 00 00 00 3d
 
 // Get Wi-Fi signal strength Cmd
 55 aa 03 24 00 00 26
@@ -160,7 +169,7 @@
 // Get MAC Cmd
 55 aa 03 2d 00 00 2f
 
-// Get MAC Addr= 00:50:8A:06:E3:A2:D9
+// Get MAC Addr=00:50:8A:06:E3:A2:D9
 55 aa 00 2d 00 07 00 50 8a 06 e3 a2 d9 71
 
 // IR Status IR code is being sent
@@ -175,11 +184,26 @@
 // IR Test Success
 55 aa 00 2f 00 01 00 2f
 
-// Map data streaming Id=007B 00000000 01020304
+// RF Learning SubCmd=1 enter RF learning
+55 aa 00 33 00 02 01 01 36
+
+// Report RF learning SubCmd=1 enter RF learning Success
+55 aa 03 33 00 03 01 01 00 3a
+
+// RF Learning SubCmd=2 Success
+55 aa 00 33 00 02 02 00 36
+
+// Report RF learning SubCmd=3 Success Learned=01 02 03 04 05
+55 aa 03 33 00 07 03 00 01 02 03 04 05 4e
+
+// Map data streaming for robot vacuum Id=0x007B 0x00000000 0x01020304
 55 aa 03 28 00 0a 00 7b 00 00 00 00 01 02 03 04 b9
 
-// Map data streaming Success
+// Map data streaming for robot vacuum Success
 55 aa 00 28 00 01 00 28
 
-// 
+// Map data streaming Protocol=0x00 Id=0x0000 SubMapId=0x00 The map data is cleared 0x0000000001 02 03 04
+55 aa 03 30 00 0d 00 00 00 01 00 00 00 00 01 02 03 04 05 4f
 
+// Map data streaming Success
+55 aa 03 30 00 01 00 33
