@@ -202,8 +202,29 @@
 // Map data streaming for robot vacuum Success
 55 aa 00 28 00 01 00 28
 
-// Map data streaming Protocol=0x00 Id=0x0000 SubMapId=0x00 The map data is cleared 0x0000000001 02 03 04
+// Map data streaming Protocol=0x00 Id=0x0000 SubMapId=0x00 The map data is cleared MapOffset=0x00000000 EntityData=01 02 03 04
 55 aa 03 30 00 0d 00 00 00 01 00 00 00 00 01 02 03 04 05 4f
 
 // Map data streaming Success
 55 aa 03 30 00 01 00 33
+
+// RF Learning SubCmd=2 Send learning code NumKeyVal=0 SerNum=255 315 MHz TransmissionRate=2777 T=0 D=0 I=0 L=0 C=0 T=17 D=8755 I=17493 L=26231 C=136
+55 aa 00 33 00 17 02 01 00 ff 00 0a d9 00 00 00 00 00 00 00 00 11 22 33 44 55 66 77 88 92
+// Msg in Tuya Spec is wrong
+
+// Send Status SubCmd=6 Get map session ID
+55 aa 03 34 00 01 06 3d
+// wrong example given in Tuya spec: 55 aa 03 30 00 01 00 33
+
+// RF Learning SubCmd=3 Success
+55 aa 00 33 00 02 03 00 37
+
+// Features SubCmd=1 Notify file download task
+55 aa 00 37 00 02 01 01 3a
+
+// Features SubCmd=1 10240 bytes
+55 aa 00 37 00 03 01 00 07 41
+
+// Features SubCmd=1 File transfer is in progress
+55 aa 00 37 00 03 01 01 02 3d
+
