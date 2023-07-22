@@ -1258,10 +1258,8 @@ namespace SniffUART {
                                     appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
                                 }
                             } else if (ver == 3 && subCmd == 0 && dataLen >= 2) {
-                                if (dataLen > 2) {
-                                    string prodTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
-                                    appendTxt(ref rtBox, " " + prodTxt, colorData);
-                                }
+                                string prodTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                                appendTxt(ref rtBox, " " + prodTxt, colorData);
                             } else if (ver == 0 && subCmd == 1 && dataLen == 3) {
                                 int accept = data[7];
                                 if (accept == 0) {
@@ -1289,6 +1287,23 @@ namespace SniffUART {
                             } else if (ver == 0 && subCmd == 1 && dataLen == 2) {
                                 appendTxt(ref rtBox, " Notify file download task", colorInfo);
                             } else if (ver == 3 && dataLen == 3) {
+                            } else if (ver == 0 && subCmd == 6 && dataLen == 2) {
+                                appendTxt(ref rtBox, " Request uploading files", colorInfo);
+                                int respStatus = data[7];
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " Failure", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                                }
+                            } else if (ver == 3 && subCmd == 6 && dataLen > 2) {
+                                appendTxt(ref rtBox, " Request uploading files", colorInfo);
+                                string prodTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                                appendTxt(ref rtBox, " " + prodTxt, colorData);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong Decoding ver=" + ver.ToString() + " subCmd=" + subCmd.ToString() + " DataLen=" + dataLen.ToString(), colorErr);
+                                bErr = true;
                             }
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);

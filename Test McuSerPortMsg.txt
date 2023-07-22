@@ -228,3 +228,5 @@
 // Features SubCmd=1 File transfer is in progress
 55 aa 00 37 00 03 01 01 02 3d
 
+// Features SubCmd=6 Request uploading files {"num":n;"files"[{"name":"xx","id":n,"len":n,"type":n,"file_info1:"xx"}]"ext_info":"xxxx"}
+55 aa 03 37 00 5b 06 7B 22 6E 75 6D 22 3A 6E 3B 22 66 69 6C 65 73 22 5B 7B 22 6E 61 6D 65 22 3A 22 78 78 22 2C 22 69 64 22 3A 6E 2C 22 6C 65 6E 22 3A 6E 2C 22 74 79 70 65 22 3A 6E 2C 22 66 69 6C 65 5F 69 6E 66 6F 31 3A 22 78 78 22 7D 5D 22 65 78 74 5F 69 6E 66 6F 22 3A 22 78 78 78 78 22 7D 0F
