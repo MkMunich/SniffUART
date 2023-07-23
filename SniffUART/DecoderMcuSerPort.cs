@@ -163,8 +163,31 @@ namespace SniffUART {
         {
             { -1, "VoiceStatus Cmd" },
             { 0x00, "Turn on the mic" },
-            { 0x01, "Mute the mic." },
+            { 0x01, "Mute the mic" },
             { 0xa0, "Query the mic status" },
+        };
+
+        public static Dictionary<int, string> VoiceTestCmds = new Dictionary<int, string>
+        {
+            { -1, "VoiceTest Cmd" },
+            { 0x00, "Disable audio test" },
+            { 0x01, "Perform audio loop test on mic1" },
+            { 0x02, "Perform audio loop test on mic2" },
+            { 0xa0, "Query test status" },
+        };
+
+        public static Dictionary<int, string> TestWakingUpCmds = new Dictionary<int, string>
+        {
+            { -1, "VoiceTesting Wake Up Cmd" },
+            { 0x00, "Failed to be woken up" },
+            { 0x01, "Woken up successfully" },
+        };
+
+        public static Dictionary<int, string> VoiceASRCmds = new Dictionary<int, string>
+        {
+            { -1, "ASR Cmd" },
+            { 0x00, "turn off ASR" },
+            { 0x01, "turn on ASR" },
         };
 
 
@@ -1136,7 +1159,7 @@ namespace SniffUART {
                                     decodeParamStr(ref rtBox, "Learned", hex);
                                 }
                             } else {
-                                appendTxt(ref rtBox, " Wrong SubCmd=" + subCmd.ToString(), colorErr);
+                                appendTxt(ref rtBox, " Wrong Decoding ver=" + ver.ToString() + " subCmd=" + subCmd.ToString() + " DataLen=" + dataLen.ToString(), colorErr);
                             }
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
@@ -1225,7 +1248,7 @@ namespace SniffUART {
                                         }
                                     }
                                 } else {
-                                    appendTxt(ref rtBox, " Wrong SubCmd=" + subCmd.ToString(), colorErr);
+                                    appendTxt(ref rtBox, " Wrong Decoding ver=" + ver.ToString() + " subCmd=" + subCmd.ToString() + " DataLen=" + dataLen.ToString(), colorErr);
                                 }
                             }
                         } else {
@@ -1424,10 +1447,153 @@ namespace SniffUART {
                         int dataLen = (data[4] << 8) + data[5];
                         if (ver == 3 && dataLen == 1) {
                             int voiceCmd = data[6];
-                            bErr |= decodeDictParam(ref rtBox, ref VoiceStatusCmds, colorInfo, voiceCmd, false);
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceStatusCmds, colorCmd, voiceCmd, false);
                         } else if (ver == 0 && dataLen == 1) {
                             int micState = data[6];
                             decodeParamStr(ref rtBox, "VoiceState", (micState == 0) ? "Mic on" : "Mic muted");
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | 0x62: // Voice features Mute Mic
+                case Ver3 | 0x62: // Voice features Mute Mic
+                    {
+                        appendTxt(ref rtBox, "Voice Features", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (ver == 3 && dataLen == 1) {
+                            int volCmd = data[6];
+                            if (volCmd == 0xa0) {
+                                appendTxt(ref rtBox, " Query", colorCmd);
+                            } else {
+                                appendTxt(ref rtBox, " Set", colorSubCmd);
+                                decodeParam(ref rtBox, "Volume", volCmd, 0);
+                            }
+                        } else if (ver == 0 && dataLen == 1) {
+                            int volCmd = data[6];
+                            decodeParam(ref rtBox, "Volume", volCmd, 0);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | 0x63: // Voice features Test
+                case Ver3 | 0x63: // Voice features Test
+                    {
+                        appendTxt(ref rtBox, "Voice Test", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (ver == 3 && dataLen == 1) {
+                            int voiceCmd = data[6];
+                            if (voiceCmd == 0xa0) {
+                                appendTxt(ref rtBox, " Query", colorCmd);
+                            } else {
+                                appendTxt(ref rtBox, " Set", colorSubCmd);
+                                bErr |= decodeDictParam(ref rtBox, ref VoiceTestCmds, colorInfo, voiceCmd, false);
+                            }
+                        } else if (ver == 0 && dataLen == 1) {
+                            int testState = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceTestCmds, colorInfo, testState, false);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | 0x64: // Test waking up voice assistant
+                case Ver3 | 0x64: // Test waking up voice assistant
+                    {
+                        appendTxt(ref rtBox, "Test Waking Up", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (ver == 3 && dataLen == 0) {
+                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                        } else if (ver == 0 && dataLen == 1) {
+                            int testWakUp = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref TestWakingUpCmds, colorInfo, testWakUp, false);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | 0x65: // Voice module wake up
+                case Ver3 | 0x65: // Voice module wake up
+                    {
+                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (dataLen >= 1) {
+                            int subCmd = data[6];
+                            if (ver == 0 && subCmd == 0 && dataLen == 2) {
+                                int respStatus = data[7];
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " Play Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " Play Failure", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                                }
+                            } else if (ver == 3 && subCmd == 1 && dataLen == 2) {
+                                int respStatus = data[7];
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " Play Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " Play Failure", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                                }
+                            } else if (ver == 3 && subCmd == 0 && dataLen >= 2) {
+                                string playTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                                appendTxt(ref rtBox, " " + playTxt, colorData);
+                            } else if (ver == 0 && subCmd == 1 && dataLen >= 2) {
+                                string playTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                                appendTxt(ref rtBox, " " + playTxt, colorData);
+                            } else if (ver == 0 && subCmd == 2 && dataLen == 2) {
+                                int respStatus = data[7];
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " Wake Up Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " Wake Up Failure", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                                }
+                            } else if (ver == 3 && subCmd == 2 && dataLen == 1) {
+                                appendTxt(ref rtBox, " Wake Up", colorCmd);
+                            } else if (ver == 0 && subCmd == 3 && dataLen == 2) {
+                                int respStatus = data[7];
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " ASR Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " ASR Failure", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                                }
+                            } else if (ver == 3 && subCmd == 3 && dataLen == 2) {
+                                int asrCmd = data[7]; // automatic speech recognition
+                                bErr |= decodeDictParam(ref rtBox, ref VoiceASRCmds, colorParam, asrCmd, true);
+                            } else if (ver == 3 && subCmd == 4 && dataLen >= 2) {
+                                string playTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                                appendTxt(ref rtBox, " " + playTxt, colorData);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong Decoding ver=" + ver.ToString() + " subCmd=" + subCmd.ToString() + " DataLen=" + dataLen.ToString(), colorErr);
+                                bErr = true;
+                            }
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
                             bErr = true;
