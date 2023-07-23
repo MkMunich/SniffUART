@@ -22,7 +22,10 @@
 // Report Network Status GPIO pins WiFiStatusLED=12 WiFiNetworkReset=13
 55 aa 03 02 00 02 0c 0d 1f
 
-// Features subCmd=00 {"mcu_ota":0,"abv":3,"buf":1024}
+// Features SubCmd=0 Request
+55 aa 03 37 00 01 00 3a
+
+// Features SubCmd=0 {"mcu_ota":0,"abv":3,"buf":1024} avb=(Combo module:enabled, RF remote control:enabled, Bluetooth remote control:disabled, Status query:disabled)
 55 aa 03 37 00 21 00 7b 22 6d 63 75 5f 6f 74 61 22 3a 30 2c 22 61 62 76 22 3a 33 2c 22 62 75 66 22 3a 31 30 32 34 7d ac
 
 // Features subCmd=00 Success
@@ -230,3 +233,18 @@
 
 // Features SubCmd=6 Request uploading files {"num":n;"files"[{"name":"xx","id":n,"len":n,"type":n,"file_info1:"xx"}]"ext_info":"xxxx"}
 55 aa 03 37 00 5b 06 7B 22 6E 75 6D 22 3A 6E 3B 22 66 69 6C 65 73 22 5B 7B 22 6E 61 6D 65 22 3A 22 78 78 22 2C 22 69 64 22 3A 6E 2C 22 6C 65 6E 22 3A 6E 2C 22 74 79 70 65 22 3A 6E 2C 22 66 69 6C 65 5F 69 6E 66 6F 31 3A 22 78 78 22 7D 5D 22 65 78 74 5F 69 6E 66 6F 22 3A 22 78 78 78 78 22 7D 0F
+
+// Features SubCmd=7 Canceled Failed to get the URL for file upload
+55 aa 03 37 00 03 07 02 06 4b
+
+// Features SubCmd=7 File data TransmissionId=258 Offset=0x11223344 Data=00 01 02 03 04 05 06 07 08
+55 aa 03 37 00 10 07 01 02 11 22 33 44 00 01 02 03 04 05 06 07 08 21
+
+// Features SubCmd=4 Interrupt file transfer Get transfer status
+55 aa 03 37 00 03 04 02 00 42
+
+// Features SubCmd=4 Response of interrupt file transfer No file transfer task
+55 aa 00 37 00 03 04 02 00 3f
+
+// 
+55 aa 00 37 00 04 08 01 00 00 43
