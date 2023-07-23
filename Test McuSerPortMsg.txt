@@ -246,5 +246,26 @@
 // Features SubCmd=4 Response of interrupt file transfer No file transfer task
 55 aa 00 37 00 03 04 02 00 3f
 
-// 
+// Features SubCmd=8 File download Success
 55 aa 00 37 00 04 08 01 00 00 43
+
+// Features SubCmd=8 File upload Failure File transfer with the MCU times out
+55 aa 00 37 00 04 08 02 01 05 4a
+
+// Features SubCmd=8 File download ACK
+55 aa 03 37 00 01 08 42
+
+// Voice Features Cmd
+55 aa 03 60 00 00 62
+
+// Voice Features VoiceStatus=Idle
+55 aa 00 60 00 01 00 60
+
+// Voice Features Mute Mic Turn on the mic
+55 aa 03 61 00 01 00 64
+
+// Voice Features Mute Mic VoiceState=Mic on
+55 aa 00 61 00 01 00 61
+
+// 
+55 aa 03 62 00 01 03 68

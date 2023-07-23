@@ -147,10 +147,37 @@ namespace SniffUART {
             { 0x06, "Operation anomaly" },
         };
 
+        public static Dictionary<int, string> VoiceStatus = new Dictionary<int, string>
+        {
+            { -1, "VoiceStatus" },
+            { 0x00, "Idle" },
+            { 0x01, "Mic is muted" },
+            { 0x02, "Woken up" },
+            { 0x03, "Recording voices" },
+            { 0x04, "Recognizing voices" },
+            { 0x05, "Voice is recognized" },
+            { 0x06, "Failed to recognize voices" },
+        };
+
+        public static Dictionary<int, string> VoiceStatusCmds = new Dictionary<int, string>
+        {
+            { -1, "VoiceStatus Cmd" },
+            { 0x00, "Turn on the mic" },
+            { 0x01, "Mute the mic." },
+            { 0xa0, "Query the mic status" },
+        };
+
+
         private static bool decodeDictParam(ref RichTextBox rtBox, ref Dictionary<int, string> dict, Color col, int param, bool bHex) {
             try {
-                string intTxt = dict[param];
-                appendTxt(ref rtBox, " " + intTxt, col);
+                string dictTxt = dict[param];
+                if (col == colorParam) { // display as parameter
+                    string name = dict[-1];
+                    appendTxt(ref rtBox, " " + name + "=", colorParam);
+                    appendTxt(ref rtBox, dictTxt, colorData);
+                } else {
+                    appendTxt(ref rtBox, " " + dictTxt, col);
+                }
             } catch {
                 string name = dict[-1];
                 if (bHex) {
@@ -1333,10 +1360,74 @@ namespace SniffUART {
                                     string hex = BitConverter.ToString(data, 13, dataLen - 7).Replace('-', ' ');
                                     decodeParamStr(ref rtBox, "Data", hex);
                                 }
+                            } else if (ver == 0 && subCmd == 8 && dataLen == 4) {
+                                int cmdRet = data[7];
+                                if (cmdRet == 1) {
+                                    appendTxt(ref rtBox, " File download", colorACK);
+                                } else if (cmdRet == 2) {
+                                    appendTxt(ref rtBox, " File upload", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong CmdRet=" + cmdRet.ToString(), colorErr);
+                                }
+                                int respStatus = data[8];
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " Failure", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                                }
+                                if (respStatus == 1) {
+                                    int transfStatus = data[9];
+                                    bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
+                                }
+                            } else if (ver == 3 && subCmd == 8 && dataLen == 1) {
+                                appendTxt(ref rtBox, " File download ACK", colorACK);
                             } else {
                                 appendTxt(ref rtBox, " Wrong Decoding ver=" + ver.ToString() + " subCmd=" + subCmd.ToString() + " DataLen=" + dataLen.ToString(), colorErr);
                                 bErr = true;
                             }
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | 0x60: // Voice features
+                case Ver3 | 0x60: // Voice features
+                    {
+                        appendTxt(ref rtBox, "Voice Features", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (ver == 3 && dataLen == 0) {
+                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                        } else if (ver == 0 && dataLen == 1) {
+                            int voiceState = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceStatus, colorParam, voiceState, false);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | 0x61: // Voice features Mute Mic
+                case Ver3 | 0x61: // Voice features Mute Mic
+                    {
+                        appendTxt(ref rtBox, "Voice Features Mute Mic", colorCmd);
+                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                        if (bErr)
+                            break;
+                        int dataLen = (data[4] << 8) + data[5];
+                        if (ver == 3 && dataLen == 1) {
+                            int voiceCmd = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceStatusCmds, colorInfo, voiceCmd, false);
+                        } else if (ver == 0 && dataLen == 1) {
+                            int micState = data[6];
+                            decodeParamStr(ref rtBox, "VoiceState", (micState == 0) ? "Mic on" : "Mic muted");
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
                             bErr = true;
