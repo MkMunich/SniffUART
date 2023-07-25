@@ -355,5 +355,6 @@
 // Voice Module Alarm state change Success
 55 aa 00 65 00 02 09 00 6f
 
-// 
-55 aa 00 65 00 24 0a 01 01 00 00 00 00 00 01 15 08 17 11 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fa
+// Set Voice Module Alarms NumAlarms=1 RingToneOpState=Add AlarmId=0x000000000001 Date=21-08-23 17:32 Rule=enabled Saturday,Wednesday Online ringtone RingToneName=
+55 aa 00 65 00 25 0a 01 01 00 00 00 00 00 01 15 08 17 11 20 13 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0e
+// Tuya msg in Spec has wrong dataLen and cs

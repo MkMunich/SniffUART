@@ -230,6 +230,7 @@ namespace SniffUART {
                     } break;
             } // switch
 
+            // no errors in first decoding
             if (! fstTry) { return rtBox; };
 
             // save first output

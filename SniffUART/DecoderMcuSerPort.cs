@@ -200,6 +200,15 @@ namespace SniffUART {
             { 0x02, "In-call" },
         };
 
+        public static Dictionary<int, string> RingToneOpStates = new Dictionary<int, string>
+        {
+            { -1, "RingToneOpState" },
+            { 0x00, "Poll" },
+            { 0x01, "Add" },
+            { 0x02, "Delete" },
+            { 0x03, "Update" },
+        };
+
 
         private static bool decodeDictParam(ref RichTextBox rtBox, ref Dictionary<int, string> dict, Color col, int param, bool bHex) {
             try {
@@ -228,7 +237,7 @@ namespace SniffUART {
             appendTxt(ref rtBox, param, colorData);
         }
 
-        private static void decodeParam(ref RichTextBox rtBox, string name, int param, int iHex = 0) {
+        private static void decodeParam(ref RichTextBox rtBox, string name, UInt64 param, int iHex = 0) {
             appendTxt(ref rtBox, " " + name + "=" + ((iHex > 0) ? "0x" : ""), colorParam);
             switch (iHex) {
                 case 2:
@@ -240,6 +249,9 @@ namespace SniffUART {
                 case 8:
                     appendTxt(ref rtBox, param.ToString("X8"), colorData);
                 break;
+                case 12:
+                appendTxt(ref rtBox, param.ToString("X12"), colorData);
+                    break;
                 default:
                     appendTxt(ref rtBox, param.ToString(), colorData);
                 break;
@@ -279,17 +291,17 @@ namespace SniffUART {
                         if (t == 0) { // int
                             switch (tl) {
                                 case 1: {
-                                        int val = data[idx++];
+                                        UInt64 val = (UInt64)(data[idx++]);
                                         decodeParam(ref rtBox, "Value", val, 2);
                                     }
                                     break;
                                 case 2: {
-                                        int val = (data[idx++] << 8) + data[idx++];
+                                        UInt64 val = (UInt64)((data[idx++] << 8) + data[idx++]);
                                         decodeParam(ref rtBox, "Value", val, 4);
                                     }
                                     break;
                                 case 4: {
-                                        int val = (data[idx++] << 24) + (data[idx++] << 16) + (data[idx++] << 8) + data[idx++];
+                                        UInt64 val = (UInt64)((data[idx++] << 24) + (data[idx++] << 16) + (data[idx++] << 8) + data[idx++]);
                                         decodeParam(ref rtBox, "Value", val, 8);
                                     }
                                     break;
@@ -432,9 +444,9 @@ namespace SniffUART {
                 case Ver3 | DLen2 | 0x02: // Response network status of the device
                     {
                         appendTxt(ref rtBox, "Report Network Status", colorCmd);
-                        int pinWiFiStatus = data[6];
+                        UInt64 pinWiFiStatus = data[6];
                         decodeParam(ref rtBox, "GPIO pins WiFiStatusLED", pinWiFiStatus);
-                        int pinWiFiNetwork = data[7];
+                        UInt64 pinWiFiNetwork = data[7];
                         decodeParam(ref rtBox, "WiFiNetworkReset", pinWiFiNetwork);
                     }
                     break;
@@ -442,11 +454,11 @@ namespace SniffUART {
                 case Ver3 | DLen3 | 0x02: // Response network status of the device
                     {
                         appendTxt(ref rtBox, "Report Network Status", colorCmd);
-                        int pinWiFiStatus = data[6];
+                        UInt64 pinWiFiStatus = data[6];
                         decodeParam(ref rtBox, "GPIO pins WiFiStatusLED", pinWiFiStatus);
-                        int pinWiFiNetwork = data[7];
+                        UInt64 pinWiFiNetwork = data[7];
                         decodeParam(ref rtBox, "WiFiNetworkReset", pinWiFiNetwork);
-                        int pinBluetoothStatus = data[8];
+                        UInt64 pinBluetoothStatus = data[8];
                         decodeParam(ref rtBox, "BluetoothStatusLED", pinBluetoothStatus);
                     }
                     break;
@@ -575,7 +587,7 @@ namespace SniffUART {
                 case Ver0 | DLen4 | 0x0a: // Start OTA update
                     {
                         appendTxt(ref rtBox, "Start OTA update", colorCmd);
-                        int val = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
+                        UInt64 val = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
                         decodeParam(ref rtBox, "DataLen", val);
                     }
                     break;
@@ -621,7 +633,7 @@ namespace SniffUART {
                         } else if (obtainFlag == 1) {
                             appendTxt(ref rtBox, " Success", colorACK);
 
-                            int signal = data[7];
+                            UInt64 signal = data[7];
                             decodeParam(ref rtBox, "Signal", signal);
                         } else {
                             appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
@@ -645,7 +657,7 @@ namespace SniffUART {
                 case Ver0 | DLen4 | 0x0f: // Response Get module’s memory
                     {
                         appendTxt(ref rtBox, "Memory", colorCmd);
-                        int val = (data[9] << 24) + (data[8] << 16) + (data[7] << 8) + data[6];
+                        UInt64 val = (UInt64)((data[9] << 24) + (data[8] << 16) + (data[7] << 8) + data[6]);
                         decodeParam(ref rtBox, "Free", val);
                     }
                     break;
@@ -680,7 +692,7 @@ namespace SniffUART {
                         int hour = data[10];
                         int minute = data[11];
                         int second = data[12];
-                        int week = data[13];
+                        UInt64 week = data[13];
                         try {
                             DateTime date = new DateTime(year, month, day, hour, minute, second);
                             decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
@@ -793,7 +805,7 @@ namespace SniffUART {
                 case Ver0 | DLen1 | 0x24: // Response Get Wi-Fi signal strength
 {
                         appendTxt(ref rtBox, "Wi-Fi signal strength", colorCmd);
-                        int signal = data[6];
+                        UInt64 signal = data[6];
                         decodeParam(ref rtBox, "Signal", signal);
                     }
                     break;
@@ -828,7 +840,7 @@ namespace SniffUART {
                 case Ver3 | DLenX | 0x28: // Map streaming for robot vacuum
                     {
                         appendTxt(ref rtBox, "Map data streaming for robot vacuum", colorCmd);
-                        int mapId = (data[6] << 8) + data[7];
+                        UInt64 mapId = (UInt64)((data[6] << 8) + data[7]);
                         decodeParam(ref rtBox, "Id", mapId, 4);
                         int offset = 8;
                         while (!bErr && offset < (num - 4)) {
@@ -963,20 +975,20 @@ namespace SniffUART {
                 case Ver3 | DLenX | 0x30: // Response Multiple map data streaming
                     {
                         appendTxt(ref rtBox, "Map data streaming", colorCmd);
-                        int mapSrvProt = data[6];
+                        UInt64 mapSrvProt = data[6];
                         if (mapSrvProt == 0) {
                             decodeParam(ref rtBox, "Protocol", mapSrvProt, 2);
                         } else {
                             appendTxt(ref rtBox, " Wrong MapSrvProt=" + mapSrvProt, colorErr);
                         }
 
-                        int mapId = (data[6] << 8) + data[7];
+                        UInt64 mapId = (UInt64)((data[6] << 8) + data[7]);
                         decodeParam(ref rtBox, "Id", mapId, 2);
-                        int subMapId = data[8];
+                        UInt64 subMapId = data[8];
                         decodeParam(ref rtBox, "Id", subMapId, 2);
                         int method = data[9];
                         bErr |= decodeDictParam(ref rtBox, ref MapMethods, colorData, method, true);
-                        int mapOffset = (data[10] << 24) + (data[11] << 16) + (data[12] << 8) + data[13];
+                        UInt64 mapOffset = (UInt64)((data[10] << 24) + (data[11] << 16) + (data[12] << 8) + data[13]);
                         decodeParam(ref rtBox, "MapOffset", subMapId, 8);
 
                         if (dataLen >= 9) {
@@ -1042,27 +1054,27 @@ namespace SniffUART {
                         appendTxt(ref rtBox, "Report RF learning", colorCmd);
                         int rfType = data[7];
                         bErr |= decodeDictParam(ref rtBox, ref RFTypes, colorData, rfType, true);
-                        int numKeyVal = data[8];
+                        UInt64 numKeyVal = data[8];
                         decodeParam(ref rtBox, "NumKeyVal", numKeyVal);
-                        int serNum = data[9];
+                        UInt64 serNum = data[9];
                         decodeParam(ref rtBox, "SerNum", serNum);
                         int freq = data[10];
                         bErr |= decodeDictParam(ref rtBox, ref Frequencies, colorData, freq, true);
-                        int transRate = (data[11] << 8) + data[12];
+                        UInt64 transRate = (UInt64)((data[11] << 8) + data[12]);
                         decodeParam(ref rtBox, "TransmissionRate", transRate);
 
                         if (dataLen >= 8) {
                             int offset = 13;
                             while (!bErr && offset < (num - 7)) {
-                                int times = data[offset];
+                                UInt64 times = data[offset];
                                 decodeParam(ref rtBox, "T", times);
-                                int delay = (data[offset + 1] << 8) + data[offset + 2];
+                                UInt64 delay = (UInt64)((data[offset + 1] << 8) + data[offset + 2]);
                                 decodeParam(ref rtBox, "D", delay);
-                                int intervals = (data[offset + 3] << 8) + data[offset + 4];
+                                UInt64 intervals = (UInt64)((data[offset + 3] << 8) + data[offset + 4]);
                                 decodeParam(ref rtBox, "I", intervals);
-                                int length = (data[offset + 5] << 8) + data[offset + 6];
+                                UInt64 length = (UInt64)((data[offset + 5] << 8) + data[offset + 6]);
                                 decodeParam(ref rtBox, "L", length);
-                                int code = data[offset + 7];
+                                UInt64 code = (UInt64)data[offset + 7];
                                 decodeParam(ref rtBox, "C", code);
                                 offset += 8;
                             } // while
@@ -1351,9 +1363,9 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Features", colorCmd);
                         appendTxt(ref rtBox, " File data", colorInfo);
-                        int transId = (data[7] << 8) + data[8];
+                        UInt64 transId = (UInt64)((data[7] << 8) + data[8]);
                         decodeParam(ref rtBox, "TransmissionId", transId);
-                        int offset = (data[9] << 24) + (data[10] << 16) + (data[11] << 8) + data[12];
+                        UInt64 offset = (UInt64)((data[9] << 24) + (data[10] << 16) + (data[11] << 8) + data[12]);
                         decodeParam(ref rtBox, "Offset", offset, 8);
                         if (dataLen > 6) { // data bytes
                             string hex = Regex.Replace(BitConverter.ToString(data, 13, dataLen - 7), @"\-\S", "");
@@ -1429,7 +1441,7 @@ namespace SniffUART {
                 case Ver0 | DLen1 | 0x62: // Voice features Mute Mic
                     {
                         appendTxt(ref rtBox, "Voice Features", colorCmd);
-                        int volCmd = data[6];
+                        UInt64 volCmd = data[6];
                         decodeParam(ref rtBox, "Volume", volCmd, 0);
                     }
                     break;
@@ -1437,7 +1449,7 @@ namespace SniffUART {
                 case Ver3 | DLen1 | 0x62: // Voice features Mute Mic
                     {
                         appendTxt(ref rtBox, "Voice Features", colorCmd);
-                        int volCmd = data[6];
+                        UInt64 volCmd = data[6];
                         if (volCmd == 0xa0) {
                             appendTxt(ref rtBox, " Query", colorCmd);
                         } else {
@@ -1714,10 +1726,66 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLenX | SCmda | 0x65: // Voice module wake up
+                case Ver0 | DLenX | SCmda | 0x65: // Voice module set alarms
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        int numAlarms = data[7];
+                        appendTxt(ref rtBox, "Set Voice Module Alarms", colorCmd);
+                        UInt64 numAlarms = data[7];
+                        decodeParam(ref rtBox, "NumAlarms", numAlarms);
+                        int opType = data[8];
+                        bErr |= decodeDictParam(ref rtBox, ref RingToneOpStates, colorParam, opType, false);
+
+                        int offset = 9; // start index to read alarms
+                        // decode all alarms
+                        while (bErr == false && offset < (num - 1)) {
+                            UInt64 alarmId = (UInt64)(data[offset++] << 40) + (UInt64)(data[offset++] << 32) + (UInt64)(data[offset++] << 24) + (UInt64)(data[offset++] << 16) + (UInt64)(data[offset++] << 8) + data[offset++];
+                            decodeParam(ref rtBox, "AlarmId", alarmId, 12);
+
+                            int year = data[offset++] + 2000;
+                            int month = data[offset++];
+                            int day = data[offset++];
+                            int hour = data[offset++];
+                            int minute = data[offset++];
+                            try {
+                                DateTime date = new DateTime(year, month, day, hour, minute, 0);
+                                decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
+                            } catch {
+                                appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
+                                bErr = true;
+                            }
+                            int rule = data[offset++];
+                            if (rule == 0) {
+                                appendTxt(ref rtBox, " One-Time-Alarm", colorData);
+                            } else {
+                                string days = "";
+                                if (0x01 == (rule & 0x01)) { days += "enabled "; } else { days += "dismissed "; }
+                                if (0x02 == (rule & 0x02)) { days += "Saturday,"; }
+                                if (0x04 == (rule & 0x04)) { days += "Friday,"; }
+                                if (0x08 == (rule & 0x08)) { days += "Thursday,"; }
+                                if (0x10 == (rule & 0x10)) { days += "Wednesday,"; }
+                                if (0x20 == (rule & 0x20)) { days += "Tuesday,"; }
+                                if (0x40 == (rule & 0x40)) { days += "Monday,"; }
+                                if (0x80 == (rule & 0x80)) { days += "Sunday,"; }
+                                decodeParamStr(ref rtBox, "Rule", days.Trim(','));
+                            }
+
+                            int tone = data[offset++];
+                            if (tone == 0) {
+                                appendTxt(ref rtBox, " Online ringtone", colorInfo);
+                            } else {
+                                appendTxt(ref rtBox, " Local ringtone", colorInfo);
+                            }
+
+                            string toneTxt = ASCIIEncoding.ASCII.GetString(data, offset, 21);
+                            if (toneTxt[0] == '\0')
+                                toneTxt = "";
+                            decodeParamStr(ref rtBox, "RingToneName", toneTxt);
+
+                            offset += 21;
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong Alarm decoding offset=" + offset, colorErr);
+                            bErr = true;
+                        }
                     }
                     break;
 
