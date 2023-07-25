@@ -1,4 +1,7 @@
 // Heartbeat
+00
+
+// Heartbeat
 55 aa 00 00 00 00 ff
 
 // Heartbeat MCU restarting
@@ -7,31 +10,31 @@
 // Heartbeat MCU running
 55 aa 03 00 00 01 01 04
 
-// Product Information Cmd
+// Query Product Information
 55 aa 00 01 00 00 00
 
 // Product Information {"p":"AIp08kLIftb8x***","v":"1.0.0","m":1,"mt":10,"n":0,"ir":"5.12","low":0}
 55 aa 00 01 00 4c 7b 22 70 22 3a 22 41 49 70 30 38 6b 4c 49 66 74 62 38 78 2a 2a 2a 22 2c 22 76 22 3a 22 31 2e 30 2e 30 22 2c 22 6d 22 3a 31 2c 22 6d 74 22 3a 31 30 2c 22 6e 22 3a 30 2c 22 69 72 22 3a 22 35 2e 31 32 22 2c 22 6c 6f 77 22 3a 30 7d ca
 
-// Query Network Status Cmd
+// Query Network Status
 55 aa 00 02 00 00 01
 
-// Report Network Status MCU uses network module
+// Network Status MCU uses network module
 55 aa 03 02 00 00 04
 
 // Report Network Status GPIO pins WiFiStatusLED=12 WiFiNetworkReset=13
 55 aa 03 02 00 02 0c 0d 1f
 
-// Features SubCmd=0 Request
+// Features Request
 55 aa 03 37 00 01 00 3a
 
-// Features SubCmd=0 {"mcu_ota":0,"abv":3,"buf":1024} avb=(Combo module:enabled, RF remote control:enabled, Bluetooth remote control:disabled, Status query:disabled)
+// Features {"mcu_ota":0,"abv":3,"buf":1024} avb=(Combo module:enabled, RF remote control:enabled, Bluetooth remote control:disabled, Status query:disabled)
 55 aa 03 37 00 21 00 7b 22 6d 63 75 5f 6f 74 61 22 3a 30 2c 22 61 62 76 22 3a 33 2c 22 62 75 66 22 3a 31 30 32 34 7d ac
 
-// Features subCmd=00 Success
+// Features Request Success
 55 aa 03 37 00 02 00 00 3b
 
-// Report Network Status Pairing in EZ mode (For Wi-Fi and Bluetooth LE combo module: Bluetooth is also in pairing mode)
+// Report Network Status Pairing in EZ mode
 55 aa 00 03 00 01 00 03
 
 // Report Network Status ACK
@@ -64,17 +67,17 @@
 // Report Status Success
 55 aa 00 23 00 01 01 24
 
-// Send Status SubCmd=11 Success Use GMT Date=22-02-18 16:27 DP=1 Bool=True
+// Send Status Success Use GMT Date=22-02-18 16:27 DP=1 Bool=True
 55 aa 03 34 00 0e 0b 01 02 16 02 12 10 1b 06 01 01 00 01 01 b1
 
-// Send Status SubCmd=11 Success Use local Time Date=22-02-22 11:22 DP=2 Value=100 DP=3 Enum=3
+// Send Status Success Use local Time Date=22-02-22 11:22 DP=2 Value=100 DP=3 Enum=3
 55 aa 03 34 00 16 0b 01 01 16 02 16 0b 16 21 02 02 00 04 00 00 00 64 03 04 00 01 03 40
 //incorrect example in Tuya spec: 55 aa 03 34 00 16 0b 01 01 16 02 16 0b 16 11 02 02 04 00 00 00 64 03 04 01 03 40
 
-// Send Status SubCmd=11 Failure
+// Send Status Failure
 55 aa 00 34 00 02 0b 00 40
 
-// Query DP status Cmd
+// Query DP status
 55 aa 00 08 00 00 07
 
 // Start OTA update DataLen=26624
@@ -89,37 +92,32 @@
 // Transmit Package ACK
 55 aa 03 0b 00 00 0d
 
-// Get GMT Time Cmd
+// Get GMT Time
 55 aa 03 0c 00 00 0e
 
-// System Time Cmd
+// Get System Time
 55 aa 03 1c 00 00 1e
 
 // System Time Success Date=16-04-19 05:06 Week=2
 55 aa 00 1c 00 08 01 10 04 13 05 06 07 02 5f
 
-// Query Signal Strength Cmd
+// Query Signal Strength
 55 aa 03 0e 00 00 10
 
 // Query Signal Strength failed error=SSID is not found
 55 aa 00 0e 00 02 00 00 0f
 
-// Get memory Cmd
+// Get memory
 55 aa 03 0f 00 00 11
 
-// Get Memory DataLen=53328
+// Memory Free=53328
 55 aa 00 0f 00 04 50 d0 00 00 32
 
-// Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010
-55 aa 00 21 00 2d 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 1e 59
-// Tuya msg above is incorrect, but the decoding is fault tolerant :-)
-
-// Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010 Parameter=w.humidity String=ABC
-55 aa 00 21 00 3c 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 0a 77 2e 68 75 6d 69 64 69 74 79 01 03 41 42 43 30
+// Enable weather services Cmd Parameter=w.temp Parameter=w.pm25
+55 aa 03 20 00 0e 06 77 2e 74 65 6d 70 06 77 2e 70 6d 32 35 80
 
 // Enable weather services Parameter=w.humidity Parameter=w.pm25 Parameter=w.date.7
 55 aa 03 20 00 1b 0a 77 2e 68 75 6d 69 64 69 74 79 06 77 2e 70 6d 32 35 08 77 2e 64 61 74 65 2e 37 f8
-// the message givien by Tuya spec is wrong :-(
 
 // Enable weather services successful
 55 aa 00 20 00 02 01 00 22
@@ -127,25 +125,32 @@
 // Enable weather services ACK
 55 aa 00 21 00 00 20
 
-// Enable weather services successful Parameter=w.temp Value=00000023 Parameter=w.pm25 Value=00000011
+// Enable weather services Successful Parameter=w.temp Value=0x00000023 Parameter=w.pm25 Value=0x00000011
 55 aa 00 21 00 1b 01 06 77 2e 74 65 6d 70 00 04 00 00 00 23 06 77 2e 70 6d 32 35 00 04 00 00 00 11 c8
 
-// Send Status SubCmd=3
+// Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010
+55 aa 00 21 00 2c 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 3a
+// Tuya msg has wrong frame: 55 aa 00 21 00 30 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 1e 5c
+
+// Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010 Parameter=w.humidity String=ABC
+55 aa 00 21 00 3c 01 0a 77 2e 68 75 6d 69 64 69 74 79 00 04 00 00 00 45 06 77 2e 74 65 6d 70 00 04 00 00 00 20 06 77 2e 70 6d 32 35 00 04 00 00 00 10 0a 77 2e 68 75 6d 69 64 69 74 79 01 03 41 42 43 30
+
+// Send Status Cmd
 55 aa 03 34 00 01 03 3a
 
-// Send Status SubCmd=3 Success
+// Send Status Success
 55 aa 00 34 00 02 03 00 38
 
-// Send Status SubCmd=6 Success Id=0x0000
+// Send Status Success Id=0x0000
 55 aa 00 34 00 04 06 00 00 00 3d
 
-// Get Wi-Fi signal strength Cmd
+// Get Wi-Fi signal strength
 55 aa 03 24 00 00 26
 
-// Get Wi-Fi signal strength Signal=236
+// Wi-Fi signal strength Signal=236
 55 aa 00 24 00 01 ec 10
 
-// Disable heartbeats Cmd
+// Disable heartbeats
 55 aa 03 25 00 00 27
 
 // Disable heartbeats ACK
@@ -157,7 +162,7 @@
 // Pairing via serial port The module is not waiting for pairing
 55 aa 00 2a 00 01 01 2b
 
-// Network Status Cmd
+// Get Network Status
 55 aa 03 2b 00 00 2d
 
 // Network Status The device is connected to the cloud
@@ -169,10 +174,10 @@
 // Test Wi-Fi success
 55 aa 00 2c 00 01 01 2d
 
-// Get MAC Cmd
+// Get MAC
 55 aa 03 2d 00 00 2f
 
-// Get MAC Addr=00:50:8A:06:E3:A2:D9
+// MAC Addr=00:50:8A:06:E3:A2:D9
 55 aa 00 2d 00 07 00 50 8a 06 e3 a2 d9 71
 
 // IR Status IR code is being sent
@@ -187,16 +192,16 @@
 // IR Test Success
 55 aa 00 2f 00 01 00 2f
 
-// RF Learning SubCmd=1 enter RF learning
+// RF Learning enter RF learning
 55 aa 00 33 00 02 01 01 36
 
-// Report RF learning SubCmd=1 enter RF learning Success
+// RF learning enter RF learning Success
 55 aa 03 33 00 03 01 01 00 3a
 
-// RF Learning SubCmd=2 Success
+// RF Learning Success
 55 aa 00 33 00 02 02 00 36
 
-// Report RF learning SubCmd=3 Success Learned=01 02 03 04 05
+// Report RF learning Success Learned=01 02 03 04 05
 55 aa 03 33 00 07 03 00 01 02 03 04 05 4e
 
 // Map data streaming for robot vacuum Id=0x007B 0x00000000 0x01020304
@@ -211,48 +216,48 @@
 // Map data streaming Success
 55 aa 03 30 00 01 00 33
 
-// RF Learning SubCmd=2 Send learning code NumKeyVal=0 SerNum=255 315 MHz TransmissionRate=2777 T=0 D=0 I=0 L=0 C=0 T=17 D=8755 I=17493 L=26231 C=136
+// RF Learning Send learning code NumKeyVal=0 SerNum=255 315 MHz TransmissionRate=2777 T=0 D=0 I=0 L=0 C=0 T=17 D=8755 I=17493 L=26231 C=136
 55 aa 00 33 00 17 02 01 00 ff 00 0a d9 00 00 00 00 00 00 00 00 11 22 33 44 55 66 77 88 92
 // Msg in Tuya Spec is wrong
 
-// Send Status SubCmd=6 Get map session ID
+// Send Status Get map session ID
 55 aa 03 34 00 01 06 3d
 // wrong example given in Tuya spec: 55 aa 03 30 00 01 00 33
 
-// RF Learning SubCmd=3 Success
+// RF Learning Success
 55 aa 00 33 00 02 03 00 37
 
-// Features SubCmd=1 Notify file download task
+// Features Notify file download task
 55 aa 00 37 00 02 01 01 3a
 
-// Features SubCmd=1 10240 bytes
+// Features PacketSize=10240 bytes
 55 aa 00 37 00 03 01 00 07 41
 
-// Features SubCmd=1 File transfer is in progress
+// Features File transfer is in progress
 55 aa 00 37 00 03 01 01 02 3d
 
-// Features SubCmd=6 Request uploading files {"num":n;"files"[{"name":"xx","id":n,"len":n,"type":n,"file_info1:"xx"}]"ext_info":"xxxx"}
+// Features Request uploading files {"num":n;"files"[{"name":"xx","id":n,"len":n,"type":n,"file_info1:"xx"}]"ext_info":"xxxx"}
 55 aa 03 37 00 5b 06 7B 22 6E 75 6D 22 3A 6E 3B 22 66 69 6C 65 73 22 5B 7B 22 6E 61 6D 65 22 3A 22 78 78 22 2C 22 69 64 22 3A 6E 2C 22 6C 65 6E 22 3A 6E 2C 22 74 79 70 65 22 3A 6E 2C 22 66 69 6C 65 5F 69 6E 66 6F 31 3A 22 78 78 22 7D 5D 22 65 78 74 5F 69 6E 66 6F 22 3A 22 78 78 78 78 22 7D 0F
 
-// Features SubCmd=7 Canceled Failed to get the URL for file upload
+// Features Canceled Failed to get the URL for file upload
 55 aa 03 37 00 03 07 02 06 4b
 
-// Features SubCmd=7 File data TransmissionId=258 Offset=0x11223344 Data=00 01 02 03 04 05 06 07 08
+// Features File data TransmissionId=258 Offset=0x11223344 Data=000102030405060708
 55 aa 03 37 00 10 07 01 02 11 22 33 44 00 01 02 03 04 05 06 07 08 21
 
-// Features SubCmd=4 Interrupt file transfer Get transfer status
+// Features Interrupt file transfer Get transfer status
 55 aa 03 37 00 03 04 02 00 42
 
-// Features SubCmd=4 Response of interrupt file transfer No file transfer task
+// Features Response of interrupt file transfer No file transfer task
 55 aa 00 37 00 03 04 02 00 3f
 
-// Features SubCmd=8 File download Success
+// Features File download Success
 55 aa 00 37 00 04 08 01 00 00 43
 
-// Features SubCmd=8 File upload Failure File transfer with the MCU times out
+// Features File upload Failure File transfer with the MCU times out
 55 aa 00 37 00 04 08 02 01 05 4a
 
-// Features SubCmd=8 File download ACK
+// Features File download ACK
 55 aa 03 37 00 01 08 42
 
 // Voice Features Cmd
@@ -316,5 +321,39 @@
 55 aa 03 65 00 2b 04 7b 22 74 65 78 74 22 3a 22 78 78 22 2c 22 73 70 65 61 6b 65 72 22 3a 22 68 75 6d 61 6e 22 2c 20 22 69 64 22 3a 31 31 37 31 7d 58
 // wrong CS in Tuya spec
 
-// 
+// Voice Module Query Play Media
 55 aa 00 65 00 01 04 69
+
+// Voice Module Query Playlist
+55 aa 03 65 00 01 05 6d
+
+// Voice Module Query Playlist Success {"artist":"Beethoven", "trackTitle":"Serenade in D major, Op.8"}
+55 aa 00 65 00 42 05 00 7B 22 61 72 74 69 73 74 22 3A 22 42 65 65 74 68 6F 76 65 6E 22 2C 20 22 74 72 61 63 6B 54 69 74 6C 65 22 3A 22 53 65 72 65 6E 61 64 65 20 69 6E 20 44 20 6D 61 6A 6F 72 2C 20 4F 70 2E 38 22 7D ed
+// wrong ASCII coding in Tuya example 55 aa 00 65 00 34 05 00 7b 22 61 72 74 69 73 74 22 3a 22 e8 96 9b e4 b9 8b e8 b0 a6 22 2c 22 74 72 61 63 6b 54 69 74 6c 65 22 3a 22 e5 8a a8 e7 89 a9 e4 b8 96 e7 95 8c 22 7d dc
+
+// Voice Module Call Cmd=Online
+55 aa 03 65 00 02 06 00 6f
+
+// Voice Module Call Success
+55 aa 00 65 00 02 06 00 6c
+
+// Voice Module Start Recording
+55 aa 03 65 00 02 07 01 71
+
+// Voice Module Start Recording Success
+55 aa 00 65 00 02 07 00 6d
+
+// Voice Module Recording stopped
+55 aa 03 65 00 02 08 00 71
+
+// Voice Module Stop Recording Success
+55 aa 00 65 00 02 08 00 6e
+
+// Voice Module Alarm enabled
+55 aa 03 65 00 02 09 01 73
+
+// Voice Module Alarm state change Success
+55 aa 00 65 00 02 09 00 6f
+
+// 
+55 aa 00 65 00 24 0a 01 01 00 00 00 00 00 01 15 08 17 11 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 fa
