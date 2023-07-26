@@ -98,7 +98,7 @@
 // Get System Time
 55 aa 03 1c 00 00 1e
 
-// System Time Success Date=16-04-19 05:06 Week=2
+// System Time successful Date=16-04-19 05:06 Week=2
 55 aa 00 1c 00 08 01 10 04 13 05 06 07 02 5f
 
 // Query Signal Strength
@@ -125,7 +125,7 @@
 // Enable weather services ACK
 55 aa 00 21 00 00 20
 
-// Enable weather services Successful Parameter=w.temp Value=0x00000023 Parameter=w.pm25 Value=0x00000011
+// Enable weather services successful Parameter=w.temp Value=0x00000023 Parameter=w.pm25 Value=0x00000011
 55 aa 00 21 00 1b 01 06 77 2e 74 65 6d 70 00 04 00 00 00 23 06 77 2e 70 6d 32 35 00 04 00 00 00 11 c8
 
 // Enable weather services successful Parameter=w.humidity Value=00000045 Parameter=w.temp Value=00000020 Parameter=w.pm25 Value=00000010
@@ -138,7 +138,7 @@
 // Send Status Cmd
 55 aa 03 34 00 01 03 3a
 
-// Send Status Success
+// Send Status successful
 55 aa 00 34 00 02 03 00 38
 
 // Send Status Success Id=0x0000
@@ -171,7 +171,7 @@
 // Test Wi-Fi{"ssid":"xxx","password":"12345678"}
 55 aa 03 2c 00 24 7b 22 73 73 69 64 22 3a 22 78 78 78 22 2c 22 70 61 73 73 77 6f 72 64 22 3a 22 31 32 33 34 35 36 37 38 22 7d 2c
 
-// Test Wi-Fi success
+// Test Wi-Fi successful
 55 aa 00 2c 00 01 01 2d
 
 // Get MAC
@@ -189,7 +189,7 @@
 // IR Test Cmd
 55 aa 03 2f 00 00 31
 
-// IR Test Success
+// IR Test successful
 55 aa 00 2f 00 01 00 2f
 
 // RF Learning enter RF learning
@@ -198,10 +198,10 @@
 // RF learning enter RF learning Success
 55 aa 03 33 00 03 01 01 00 3a
 
-// RF Learning Success
+// RF Learning successful
 55 aa 00 33 00 02 02 00 36
 
-// Report RF learning Success Learned=01 02 03 04 05
+// Report RF learning successful Learned=01 02 03 04 05
 55 aa 03 33 00 07 03 00 01 02 03 04 05 4e
 
 // Map data streaming for robot vacuum Id=0x007B 0x00000000 0x01020304
@@ -213,7 +213,7 @@
 // Map data streaming Protocol=0x00 Id=0x0000 SubMapId=0x00 The map data is cleared MapOffset=0x00000000 EntityData=01 02 03 04
 55 aa 03 30 00 0d 00 00 00 01 00 00 00 00 01 02 03 04 05 4f
 
-// Map data streaming Success
+// Map data streaming successful
 55 aa 03 30 00 01 00 33
 
 // RF Learning Send learning code NumKeyVal=0 SerNum=255 315 MHz TransmissionRate=2777 T=0 D=0 I=0 L=0 C=0 T=17 D=8755 I=17493 L=26231 C=136
@@ -224,7 +224,7 @@
 55 aa 03 34 00 01 06 3d
 // wrong example given in Tuya spec: 55 aa 03 30 00 01 00 33
 
-// RF Learning Success
+// RF Learning successful
 55 aa 00 33 00 02 03 00 37
 
 // Features Notify file download task
@@ -233,13 +233,19 @@
 // Features PacketSize=10240 bytes
 55 aa 00 37 00 03 01 00 07 41
 
+// File Info Sync {"num":1;"files"[{"1ame":"xx","id":n,"len":n,"type":6,"file_info":"xx"}]"ext_info":"xxxx","act":4} FileType=JPG FileAction=Video play
+55 aa 00 37 00 63 02 7B 22 6E 75 6D 22 3A 31 3B 22 66 69 6C 65 73 22 5B 7B 22 31 61 6D 65 22 3A 22 78 78 22 2C 22 69 64 22 3A 6E 2C 22 6C 65 6E 22 3A 6E 2C 22 74 79 70 65 22 3A 36 2C 22 66 69 6C 65 5F 69 6E 66 6F 22 3A 22 78 78 22 7D 5D 22 65 78 74 5F 69 6E 66 6F 22 3A 22 78 78 78 78 22 2C 22 61 63 74 22 3A 34 7D 65
+
+// File Info Sync Success
+55 aa 03 37 00 02 02 00 3d
+
 // Features File transfer is in progress
 55 aa 00 37 00 03 01 01 02 3d
 
-// Features Request uploading files {"num":n;"files"[{"name":"xx","id":n,"len":n,"type":n,"file_info1:"xx"}]"ext_info":"xxxx"}
-55 aa 03 37 00 5b 06 7B 22 6E 75 6D 22 3A 6E 3B 22 66 69 6C 65 73 22 5B 7B 22 6E 61 6D 65 22 3A 22 78 78 22 2C 22 69 64 22 3A 6E 2C 22 6C 65 6E 22 3A 6E 2C 22 74 79 70 65 22 3A 6E 2C 22 66 69 6C 65 5F 69 6E 66 6F 31 3A 22 78 78 22 7D 5D 22 65 78 74 5F 69 6E 66 6F 22 3A 22 78 78 78 78 22 7D 0F
+// File transfer Request uploading files {"num":1;"files"[{"1ame":"xx","id":n,"len":n,"type":6,"file_info":"xx"}]"ext_info":"xxxx","act":4} FileType=JPG
+55 aa 03 37 00 63 06 7B 22 6E 75 6D 22 3A 31 3B 22 66 69 6C 65 73 22 5B 7B 22 31 61 6D 65 22 3A 22 78 78 22 2C 22 69 64 22 3A 6E 2C 22 6C 65 6E 22 3A 6E 2C 22 74 79 70 65 22 3A 36 2C 22 66 69 6C 65 5F 69 6E 66 6F 22 3A 22 78 78 22 7D 5D 22 65 78 74 5F 69 6E 66 6F 22 3A 22 78 78 78 78 22 2c 22 61 63 74 22 3A 34 7D 6c
 
-// Features Canceled Failed to get the URL for file upload
+// File transfer canceled Failed to get the URL for file upload
 55 aa 03 37 00 03 07 02 06 4b
 
 // Features File data TransmissionId=258 Offset=0x11223344 Data=000102030405060708
@@ -349,12 +355,24 @@
 // Voice Module Stop Recording Success
 55 aa 00 65 00 02 08 00 6e
 
-// Voice Module Alarm enabled
+// Alarm enabled
 55 aa 03 65 00 02 09 01 73
 
-// Voice Module Alarm state change Success
+// Alarm state Change Success
 55 aa 00 65 00 02 09 00 6f
 
-// Set Voice Module Alarms NumAlarms=1 RingToneOpState=Add AlarmId=0x000000000001 Date=21-08-23 17:32 Rule=enabled Saturday,Wednesday Online ringtone RingToneName=
+// Set Alarms NumAlarms=1 RingToneOpState=Add AlarmId=0x000000000001 Date=21-08-23 17:32 Rule=enabled Saturday,Wednesday Online ringtone RingToneName=
 55 aa 00 65 00 25 0a 01 01 00 00 00 00 00 01 15 08 17 11 20 13 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 0e
 // Tuya msg in Spec has wrong dataLen and cs
+
+// Set Alarms ACK
+55 aa 03 65 00 01 0a 72
+
+// Query Alarms
+55 aa 03 65 00 01 0b 73
+
+// Turn on/off local alarm Switch=off
+55 aa 03 65 00 02 0c 00 75
+
+// Turn on/off local alarm ACK
+55 aa 00 65 00 02 0c 00 72

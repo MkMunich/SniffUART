@@ -21,6 +21,10 @@ using System.Text.RegularExpressions;
 
 namespace SniffUART {
     internal static class DecoderMcuSerPort {
+        // separation delimiters
+        public static char[] separators = { '"', ',', '.', ';', '(', ')', '{', '}', '[', ']' };
+
+        // dictionaries defining pairs of <values, string> to output meaningful descriptionof values
         public static Dictionary<int, string> NetworkStates = new Dictionary<int, string>
         {
             { -1, "NetworkState" },
@@ -137,6 +141,58 @@ namespace SniffUART {
             { 0x02, "Get transfer status" },
         };
 
+        public static Dictionary<int, string> FileTypes = new Dictionary<int, string>
+        {
+            { -1, "FileType" },
+            {1, "TXT" },
+            { 2, "DOC" },
+            { 3, "PDF" },
+            { 4, "EXCEL" },
+            { 5, "PNG" },
+            { 6, "JPG" },
+            { 7, "BMP" },
+            { 8, "TIF" },
+            { 9, "GIF" },
+            { 10, "PCX" },
+            { 11, "TGA" },
+            { 12, "Exif" },
+            { 13, "FPX" },
+            { 14, "SVG" },
+            { 15, "PSD" },
+            { 16, "CDR" },
+            { 17, "PCD" },
+            { 18, "DXF" },
+            { 19, "UFO" },
+            { 20, "EPS" },
+            { 21, "AI" },
+            { 22, "Raw" },
+            { 23, "WMF" },
+            { 24, "WebP" },
+            { 25, "AVIF" },
+            { 26, "WAV" },
+            { 27, "FLAC" },
+            { 28, "APE" },
+            { 29, "ALAC" },
+            { 30, "WavPack(WV)" },
+            { 31, "MP3" },
+            { 32, "AAC" },
+            { 33, "Ogg Vorbis" },
+            { 34, "Opus" },
+            { 35, "MP4" },
+        };
+
+
+        public static Dictionary<int, string> FileActions = new Dictionary<int, string>
+        {
+            { -1, "FileAction" },
+            { 0x01, "Print" },
+            { 0x02, "Text display" },
+            { 0x03, "Audio play" },
+            { 0x04, "Video play" },
+            { 0x05, "Store" },
+        };
+
+
         public static Dictionary<int, string> FileDownloadExceptions = new Dictionary<int, string>
         {
             { -1, "InterruptState" },
@@ -209,6 +265,13 @@ namespace SniffUART {
             { 0x03, "Update" },
         };
 
+        public static Dictionary<int, string> SwitchLocalAlarms = new Dictionary<int, string>
+        {
+            { -1, "Switch" },
+            { 0x00, "off" },
+            { 0x01, "on" },
+        };
+
 
         private static bool decodeDictParam(ref RichTextBox rtBox, ref Dictionary<int, string> dict, Color col, int param, bool bHex) {
             try {
@@ -258,6 +321,16 @@ namespace SniffUART {
             } // switch
         }
 
+        private static void decodeResponse(ref RichTextBox rtBox, int resp, bool bInverse, bool bVerb = false) {
+            if ((!bInverse && resp == 0) || (bInverse && resp == 1)) {
+                appendTxt(ref rtBox, bVerb ? " failed" : " Failure", colorErr);
+            } else if ((!bInverse && resp == 1) || (bInverse && resp == 0)) {
+                appendTxt(ref rtBox, bVerb ? " sucessful" : " Success", colorACK);
+            } else {
+                appendTxt(ref rtBox, " Wrong Resp=" + resp, colorErr);
+            }
+        }
+
         private static void decodeAbv(ref RichTextBox rtBox, int abv) {
             appendTxt(ref rtBox, " avb=(", colorParam);
             appendTxt(ref rtBox, "Combo module:", colorDP);
@@ -281,7 +354,7 @@ namespace SniffUART {
                 int idx = offset + l + 1;
                 int tl = 0;
                 if (offset + l < (num - 1)) {
-                    string str = System.Text.Encoding.UTF8.GetString(data, offset + 1, l);
+                    string str = Encoding.UTF8.GetString(data, offset + 1, l);
                     decodeParamStr(ref rtBox, "Parameter", str);
 
                     if (bContainsData) { // data values to decode
@@ -312,7 +385,7 @@ namespace SniffUART {
                                     break;
                             } // switch
                         } else if (t == 1) { // string
-                            string parStr = System.Text.Encoding.UTF8.GetString(data, idx, tl);
+                            string parStr = Encoding.UTF8.GetString(data, idx, tl);
                             decodeParamStr(ref rtBox, "String", parStr);
                             idx += l;
                         } else {
@@ -382,6 +455,7 @@ namespace SniffUART {
             const int SCmd9 = 0x0900; // subCmd == 0x09
             const int SCmda = 0x0a00; // subCmd == 0x0a
             const int SCmdb = 0x0b00; // subCmd == 0x0b
+            const int SCmdc = 0x0c00; // subCmd == 0x0c
 
             if (num >= 6) {
                 bErr |= checkFrame(dec, ref rtBox, num, ref data);
@@ -423,7 +497,7 @@ namespace SniffUART {
                 case Ver0 | DLenX | 0x01: // Response product information
                     {
                         appendTxt(ref rtBox, "Product Information", colorCmd);
-                        string prodTxt = ASCIIEncoding.ASCII.GetString(data, 6, dataLen);
+                        string prodTxt = Encoding.UTF8.GetString(data, 6, dataLen);
                         appendTxt(ref rtBox, " " + prodTxt, colorData);
                     }
                     break;
@@ -624,20 +698,14 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
                         int obtainFlag = data[6];
+                        decodeResponse(ref rtBox, obtainFlag, false, true);
                         if (obtainFlag == 0) {
-                            appendTxt(ref rtBox, " Failed", colorInfo);
-
                             int err = data[7];
                             appendTxt(ref rtBox, " error=", colorErr);
                             appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : (err == 0) ? "No authorization key" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
                         } else if (obtainFlag == 1) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-
                             UInt64 signal = data[7];
                             decodeParam(ref rtBox, "Signal", signal);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
-                            bErr = true;
                         }
                     }
                     break;
@@ -678,14 +746,7 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "System Time", colorCmd);
                         int obtainFlag = data[6];
-                        if (obtainFlag == 0) {
-                            appendTxt(ref rtBox, " failed", colorErr);
-                        } else if (obtainFlag == 1) {
-                            appendTxt(ref rtBox, " successful", colorACK);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
-                            bErr = true;
-                        }
+                        decodeResponse(ref rtBox, obtainFlag, false, true);
                         int year = data[7] + 2000;
                         int month = data[8];
                         int day = data[9];
@@ -708,8 +769,8 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Enable weather services", colorCmd);
                         int obtainFlag = data[6];
+                        decodeResponse(ref rtBox, obtainFlag, false, true);
                         if (obtainFlag == 0) {
-                            appendTxt(ref rtBox, " failed", colorErr);
                             int sucFlag = data[7];
                             if (sucFlag == 1) {
                                 appendTxt(ref rtBox, " Invalid data format" + sucFlag, colorErr);
@@ -718,11 +779,6 @@ namespace SniffUART {
                             } else {
                                 appendTxt(ref rtBox, " Wrong SuccessFlag=" + sucFlag, colorErr);
                             }
-                        } else if (obtainFlag == 1) {
-                            appendTxt(ref rtBox, " successful", colorACK);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
-                            bErr = true;
                         }
                     }
                     break;
@@ -739,14 +795,7 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Enable weather services", colorCmd);
                         int sucFlag = data[6];
-                        if (sucFlag == 0) {
-                            appendTxt(ref rtBox, " Failed", colorErr);
-                        } else if (sucFlag == 1) {
-                            appendTxt(ref rtBox, " Successful", colorACK);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong SuccessFlag=" + sucFlag, colorErr);
-                            bErr = true;
-                        }
+                        decodeResponse(ref rtBox, sucFlag, false, true);
                         bErr |= decodeWeatherParameter(ref rtBox, ref data, num, true, 7);
                     }
                     break;
@@ -758,17 +807,11 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 |DLen1 | 0x22: // Report Status
+                case Ver0 |DLen1 | 0x22: // Report Status (hint: might be that cmd 0x23 is used)
                     {
                         appendTxt(ref rtBox, "Report Status", colorCmd);
                         int respStatus = data[6];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, false, true);
                     }
                     break;
 
@@ -792,13 +835,7 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Report Status", colorCmd);
                         int respStatus = data[6];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, false);
                     }
                     break;
 
@@ -866,7 +903,7 @@ namespace SniffUART {
                 case Ver3 | DLenX | 0x2a: // Pairing via serial port
                     {
                         appendTxt(ref rtBox, "Pairing via serial port", colorCmd);
-                        string str = System.Text.Encoding.UTF8.GetString(data, 6, dataLen);
+                        string str = Encoding.UTF8.GetString(data, 6, dataLen);
                         appendTxt(ref rtBox, str, colorData);
                     }
                     break;
@@ -889,20 +926,14 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
                         int respStatus = data[6];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, false, true);
                     }
                     break;
 
                 case Ver3 | DLenX | 0x2c: // Response Test Wi-Fi functionality (connection)
                     {
                         appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
-                        string str = System.Text.Encoding.UTF8.GetString(data, 6, dataLen);
+                        string str = Encoding.UTF8.GetString(data, 6, dataLen);
                         appendTxt(ref rtBox, str, colorData);
                     }
                     break;
@@ -941,13 +972,7 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "IR Test", colorCmd);
                         int respStatus = data[6];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true, true);
                     }
                     break;
 
@@ -962,13 +987,7 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Map data streaming", colorCmd);
                         int respStatus = data[6];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true, true);
                     }
                     break;
 
@@ -1012,20 +1031,6 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd2 | 0x33: // Cmd RF learning
-                    {
-                        appendTxt(ref rtBox, "RF Learning", colorCmd);
-                        int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
-                    }
-                    break;
-
                 case Ver3 | DLen3 | SCmd1 | 0x33: // Cmd RF learning
                     {
                         appendTxt(ref rtBox, "RF Learning", colorCmd);
@@ -1046,6 +1051,15 @@ namespace SniffUART {
                         } else {
                             appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
                         }
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmd2 | 0x33: // Response RF learning
+                case Ver3 | DLen2 | SCmd2 | 0x33: // (hint: the Tuya example is sent with Ver0, but defined with Ver3)
+                    {
+                        appendTxt(ref rtBox, "RF Learning", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true, true);
                     }
                     break;
 
@@ -1091,13 +1105,7 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "RF learning", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true, true);
                         if (dataLen > 2) {
                             string hex = BitConverter.ToString(data, 8, dataLen - 2).Replace('-', ' ');
                             decodeParamStr(ref rtBox, "Learned", hex);
@@ -1105,35 +1113,29 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen1 | SCmd3 | 0x34: // Respone Send Status from MCU to module
+                case Ver3 | DLen1 | SCmd3 | 0x34: // Response Send Status from MCU to module
                     {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
                         appendTxt(ref rtBox, " Cmd", colorCmd);
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd3 | 0x34: // Respone Send Status from MCU to module
+                case Ver0 | DLen2 | SCmd3 | 0x34: // Response Send Status from MCU to module
                     {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true, true);
                     }
                     break;
 
-                case Ver3 | DLen1 | SCmd6 | 0x34: // Respone Send Status from MCU to module
+                case Ver3 | DLen1 | SCmd6 | 0x34: // Response Send Status from MCU to module
                     {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
                         appendTxt(ref rtBox, " Get map session ID", colorInfo);
                     }
                     break;
 
-                case Ver0 | DLen4 | SCmd6 | 0x34: // Respone Send Status from MCU to module
+                case Ver0 | DLen4 | SCmd6 | 0x34: // Response Send Status from MCU to module
                     {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
                         int sucFlag = data[7];
@@ -1153,8 +1155,8 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmdb | 0x34: // Respone Send Status from MCU to module
-                case Ver3 | DLenX | SCmdb | 0x34: // Respone Send Status from MCU to module
+                case Ver0 | DLen2 | SCmdb | 0x34: // Response Send Status from MCU to module
+                case Ver3 | DLenX | SCmdb | 0x34: // Response Send Status from MCU to module
                     {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
                         int respStatus = data[7];
@@ -1244,14 +1246,15 @@ namespace SniffUART {
                 case Ver3 | DLenX | SCmd0 | 0x37: // Notification of new feature setting ACK
                     {
                         appendTxt(ref rtBox, "Features", colorCmd);
-                        string prodTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                        string prodTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
                         appendTxt(ref rtBox, " " + prodTxt, colorData);
-                        int idx = prodTxt.IndexOf("\"abv\"");
-                        if (idx >= 0) {
-                            idx = prodTxt.IndexOf(':', idx) + 1;
+                        int idx = prodTxt.IndexOf("\"abv\":") + 6;
+                        if (idx > 6) {
                             int abv;
-                            Int32.TryParse(prodTxt.Substring(idx,1), out abv);
-                            decodeAbv(ref rtBox, abv);
+                            string subStr = prodTxt.Substring(idx, prodTxt.IndexOfAny(separators, idx) - idx);
+                            if (Int32.TryParse(subStr, out abv)) {
+                                decodeAbv(ref rtBox, abv);
+                            }
                         }
                     }
                     break;
@@ -1263,7 +1266,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen3 | SCmd1 | 0x37: // Notification of new feature setting ACK
+                case Ver0 | DLen3 | SCmd1 | 0x37: // Notification of new feature setting
                     {
                         appendTxt(ref rtBox, "Features", colorCmd);
                         int accept = data[7];
@@ -1280,7 +1283,42 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen3 | SCmd4 | 0x37: // Notification of new feature setting ACK
+                case Ver0 | DLenX | SCmd2 | 0x37: // File Info Sync
+                    {
+                        appendTxt(ref rtBox, "File Info Sync", colorCmd);
+                        // assuming Tuya spec means: file info is presented like in 0x37 subCmd 6
+                        string fileInfosTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                        appendTxt(ref rtBox, " " + fileInfosTxt, colorData);
+
+                        int idx = fileInfosTxt.IndexOf("\"type\":") + 7;
+                        if (idx > 7) {
+                            int fInfo;
+                            string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
+                            if (Int32.TryParse(subStr, out fInfo)) {
+                                decodeDictParam(ref rtBox, ref FileTypes, colorParam, fInfo, false);
+                            }
+                        }
+
+                        idx = fileInfosTxt.IndexOf("\"act\":") + 6;
+                        if (idx > 6) {
+                            int fAction;
+                            string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
+                            if (Int32.TryParse(subStr, out fAction)) {
+                                decodeDictParam(ref rtBox, ref FileActions, colorParam, fAction, false);
+                            }
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLen2 | SCmd2 | 0x37: // Response File Info Sync
+                    {
+                        appendTxt(ref rtBox, "File Info Sync", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true);
+                    }
+                    break;
+
+                case Ver0 | DLen3 | SCmd4 | 0x37: // Response Interrupt file transfer
                     {
                         appendTxt(ref rtBox, "Features", colorCmd);
                         appendTxt(ref rtBox, " Response of interrupt file transfer", colorInfo);
@@ -1322,35 +1360,38 @@ namespace SniffUART {
                     {
                         appendTxt(ref rtBox, "Set Features", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 2) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                        decodeResponse(ref rtBox, respStatus, true);
+                    }
+                    break;
+
+                case Ver3 | DLenX | SCmd6 | 0x37: // Request File transfer
+                    {
+                        appendTxt(ref rtBox, "File transfer", colorCmd);
+                        appendTxt(ref rtBox, " Request uploading files", colorInfo);
+                        string fileInfosTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                        appendTxt(ref rtBox, " " + fileInfosTxt, colorData);
+
+                        int idx = fileInfosTxt.IndexOf("\"type\":") + 7;
+                        if (idx > 7) {
+                            int fInfo;
+                            string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
+                            if (Int32.TryParse(subStr, out fInfo)) {
+                                decodeDictParam(ref rtBox, ref FileTypes, colorParam, fInfo, false);
+                            }
                         }
                     }
                     break;
 
-                case Ver3 | DLenX | SCmd6 | 0x37: // Notification of new feature setting ACK
+                case Ver3 | DLen3 | SCmd7 | 0x37: // Response File transfer
                     {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        appendTxt(ref rtBox, " Request uploading files", colorInfo);
-                        string prodTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
-                        appendTxt(ref rtBox, " " + prodTxt, colorData);
-                    }
-                    break;
-
-                case Ver3 | DLen3 | SCmd7 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
+                        appendTxt(ref rtBox, "File transfer", colorCmd);
                         int respStatus = data[7];
                         if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
+                            appendTxt(ref rtBox, " successful", colorACK);
                         } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
+                            appendTxt(ref rtBox, " failed", colorErr);
                         } else if (respStatus == 2) {
-                            appendTxt(ref rtBox, " Canceled", colorErr);
+                            appendTxt(ref rtBox, " canceled", colorErr);
                         } else {
                             appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
                         }
@@ -1386,13 +1427,7 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " Wrong CmdRet=" + cmdRet.ToString(), colorErr);
                         }
                         int respStatus = data[8];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                         if (respStatus == 1) {
                             int transfStatus = data[9];
                             bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
@@ -1497,22 +1532,16 @@ namespace SniffUART {
 
                 case Ver0 | DLen2 | SCmd0 | 0x65: // Voice module wake up
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Voice Module Play", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Play Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Play Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
                 case Ver3 | DLenX | SCmd0 | 0x65: // Voice module wake up
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        string playTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                        string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
                         appendTxt(ref rtBox, " " + playTxt, colorData);
                     }
                     break;
@@ -1520,36 +1549,24 @@ namespace SniffUART {
                 case Ver0 | DLenX | SCmd1 | 0x65: // Voice module wake up
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        string playTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                        string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
                         appendTxt(ref rtBox, " " + playTxt, colorData);
                     }
                     break;
 
                 case Ver3 | DLen2 | SCmd1 | 0x65: // Voice module wake up
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Voice Module Play", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Play Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Play Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
                 case Ver0 | DLen2 | SCmd2 | 0x65: // Voice module wake up
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Voice Module Wake Up", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Wake Up Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Wake Up Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
@@ -1562,15 +1579,9 @@ namespace SniffUART {
 
                 case Ver0 | DLen2 | SCmd3 | 0x65: // Voice module wake up
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Voice Module ASR", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " ASR Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " ASR Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
@@ -1592,7 +1603,7 @@ namespace SniffUART {
                 case Ver3 | DLenX | SCmd4 | 0x65: // Voice module wake up
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        string playTxt = ASCIIEncoding.ASCII.GetString(data, 7, dataLen - 1);
+                        string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
                         appendTxt(ref rtBox, " " + playTxt, colorData);
                     }
                     break;
@@ -1616,7 +1627,7 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
                         }
                         if (respStatus == 0 && dataLen > 2) {
-                            string playTxt = ASCIIEncoding.ASCII.GetString(data, 8, dataLen - 2);
+                            string playTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
                             appendTxt(ref rtBox, " " + playTxt, colorData);
                         }
                     }
@@ -1624,15 +1635,9 @@ namespace SniffUART {
 
                 case Ver0 | DLen2 | SCmd6 | 0x65: // Voice module wake up
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Voice Module Call", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Call Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Call Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
@@ -1646,15 +1651,9 @@ namespace SniffUART {
 
                 case Ver0 | DLen2 | SCmd7 | 0x65: // Voice module wake up
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Voice Module Start Recording", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Start Recording Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Start Recording Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
@@ -1672,19 +1671,13 @@ namespace SniffUART {
 
                 case Ver0 | DLen2 | SCmd8 | 0x65: // Voice module wake up
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Voice Module Stop Recording", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Stop Recording Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Stop Recording Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
-                case Ver3 | DLen2 | SCmd8 | 0x65: // Voice module wake up
+                case Ver3 | DLen2 | SCmd8 | 0x65: // Voice module start/stop recording
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         int recStatus = data[7];
@@ -1698,37 +1691,31 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd9 | 0x65: // Voice module wake up
+                case Ver0 | DLen2 | SCmd9 | 0x65: // Alarm state change
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Alarm state Change", colorCmd);
                         int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Alarm state change Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Alarm state change Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
+                        decodeResponse(ref rtBox, respStatus, true);
                     }
                     break;
 
-                case Ver3 | DLen2 | SCmd9 | 0x65: // Voice module wake up
+                case Ver3 | DLen2 | SCmd9 | 0x65: // Alarm en-/disable
                     {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
+                        appendTxt(ref rtBox, "Alarm", colorCmd);
                         int alarmState = data[7];
                         if (alarmState == 0) {
-                            appendTxt(ref rtBox, " Alarm disabled", colorSubCmd);
+                            appendTxt(ref rtBox, " disabled", colorSubCmd);
                         } else if (alarmState == 1) {
-                            appendTxt(ref rtBox, " Alarm enabled", colorSubCmd);
+                            appendTxt(ref rtBox, " enabled", colorSubCmd);
                         } else {
                             appendTxt(ref rtBox, " Wrong RespStatus=" + alarmState.ToString(), colorErr);
                         }
                     }
                     break;
 
-                case Ver0 | DLenX | SCmda | 0x65: // Voice module set alarms
+                case Ver0 | DLenX | SCmda | 0x65: // Set alarms
                     {
-                        appendTxt(ref rtBox, "Set Voice Module Alarms", colorCmd);
+                        appendTxt(ref rtBox, "Set Alarms", colorCmd);
                         UInt64 numAlarms = data[7];
                         decodeParam(ref rtBox, "NumAlarms", numAlarms);
                         int opType = data[8];
@@ -1775,7 +1762,7 @@ namespace SniffUART {
                                 appendTxt(ref rtBox, " Local ringtone", colorInfo);
                             }
 
-                            string toneTxt = ASCIIEncoding.ASCII.GetString(data, offset, 21);
+                            string toneTxt = Encoding.UTF8.GetString(data, offset, 21);
                             if (toneTxt[0] == '\0')
                                 toneTxt = "";
                             decodeParamStr(ref rtBox, "RingToneName", toneTxt);
@@ -1788,6 +1775,35 @@ namespace SniffUART {
                         }
                     }
                     break;
+
+                case Ver3 | DLen1 | SCmda | 0x65: // Set alarms ACK
+                    {
+                        appendTxt(ref rtBox, "Set Alarms", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmdb | 0x65: // Query alarm list
+                    {
+                        appendTxt(ref rtBox, "Query Alarms", colorCmd);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmdc | 0x65: // Response Voice module Turn on/off local alarm
+                    {
+                        appendTxt(ref rtBox, "Turn on/off local alarm", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver3 | DLen2 | SCmdc | 0x65: // Voice module Turn on/off local alarm
+                    {
+                        appendTxt(ref rtBox, "Turn on/off local alarm", colorCmd);
+                        int onOff = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref SwitchLocalAlarms, colorParam, onOff, false);
+                    }
+                    break;
+
 
                 default: {
                         appendTxt(ref rtBox, "Unknown DLen+Version+Cmd=0x" + sw.ToString("X6"), colorErr);

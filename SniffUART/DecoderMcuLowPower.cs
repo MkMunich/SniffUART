@@ -74,7 +74,7 @@ namespace SniffUART {
                         if (dataLen == 0) {
                             appendTxt(ref rtBox, " Query", colorData);
                         } else {
-                            string prodTxt = ASCIIEncoding.ASCII.GetString(data, 6, dataLen);
+                            string prodTxt = Encoding.UTF8.GetString(data, 6, dataLen);
                             appendTxt(ref rtBox, " " + prodTxt, colorData);
                         }
                     }

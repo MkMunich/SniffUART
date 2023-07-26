@@ -174,7 +174,7 @@ namespace SniffUART {
                         appendTxt(ref rtBox, "=" + val.ToString(), colorData);
                     } break;
                 case 3: { // String
-                        string ascii = Encoding.ASCII.GetString(data, offset + 4, len);
+                        string ascii = Encoding.UTF8.GetString(data, offset + 4, len);
                         //:-( ascii = Regex.Replace(ascii, @"[^\u0000-\u007F]+", "."); // replace all non printable char by '.'
                         appendTxt(ref rtBox, "=\"" + ascii + "\"", colorData);
                     } break;
