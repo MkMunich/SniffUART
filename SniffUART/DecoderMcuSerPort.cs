@@ -115,7 +115,6 @@ namespace SniffUART {
             { 0x01, "Send learning code" },
         };
 
-
         public static Dictionary<int, string> LEDActivities = new Dictionary<int, string>
         {
             { -1, "LEDActivity" },
@@ -270,6 +269,49 @@ namespace SniffUART {
             { -1, "Switch" },
             { 0x00, "off" },
             { 0x01, "on" },
+        };
+
+        public static Dictionary<int, string> SetAlarms = new Dictionary<int, string>
+        {
+            { -1, "Operation" },
+            { 0x01, "Set an alarm" },
+            { 0x02, "Edit an alarm" },
+            { 0x03, "Delete an alarm" },
+            { 0x04, "Turn on an alarm" },
+            { 0x05, "Turn off an alarm" },
+        };
+
+        public static Dictionary<int, string> AlarmOpResponses = new Dictionary<int, string>
+        {
+            { -1, "OpResp" },
+            { 0x00, "Operation succeeded" },
+            { 0x01, "JSON format error occurs" },
+            { 0x02, "Parameter is missing" },
+            { 0x03, "Failed to call service" },
+            { 0x04, "Other errors" },
+        };
+
+        public static Dictionary<int, string> TimeZones = new Dictionary<int, string>
+        {
+            { -1, "TimeZone" },
+            { 0x00, "GMT" },
+            { 0x01, "Local time" },
+        };
+
+        public static Dictionary<int, string> ResetStates = new Dictionary<int, string>
+        {
+            { -1, "Reset Status" },
+            { 0x00, "Reset by hardware operation" },
+            { 0x01, "Reset performed on the mobile app" },
+            { 0x02, "Factory reset performed on the mobile app" },
+        };
+
+        public static Dictionary<int, string> WiFiInfos = new Dictionary<int, string>
+        {
+            { -1, "Wi-Fi Info" },
+            { 0xff, "All" },
+            { 0x01, "SSID of an AP" },
+            { 0x02, "Country code" },
         };
 
 
@@ -456,6 +498,9 @@ namespace SniffUART {
             const int SCmda = 0x0a00; // subCmd == 0x0a
             const int SCmdb = 0x0b00; // subCmd == 0x0b
             const int SCmdc = 0x0c00; // subCmd == 0x0c
+            const int SCmdd = 0x0d00; // subCmd == 0x0d
+            const int SCmde = 0x0e00; // subCmd == 0x0e
+            const int SCmdf = 0x0f00; // subCmd == 0x0f
 
             if (num >= 6) {
                 bErr |= checkFrame(dec, ref rtBox, num, ref data);
@@ -1113,7 +1158,55 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen1 | SCmd3 | 0x34: // Response Send Status from MCU to module
+                case Ver0 | DLen2 | SCmd1 | 0x34: // Response Enable time service notification
+                    {
+                        appendTxt(ref rtBox, "Enable time service notification", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true, true);
+                    }
+                    break;
+
+                case Ver3 | DLen2 | SCmd1 | 0x34: // Enable time service notification
+                    {
+                        appendTxt(ref rtBox, "Enable time service notification", colorCmd);
+                        int timeZone = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref TimeZones, colorData, timeZone, true);
+                    }
+                    break;
+
+                case Ver0 | DLenX | SCmd2 | 0x34: // Response time
+                    {
+                        appendTxt(ref rtBox, "Response time", colorCmd);
+                        int timeZone = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref TimeZones, colorData, timeZone, true);
+                        int offset = 8;
+                        int year = data[offset++] + 2000;
+                        int month = data[offset++];
+                        int day = data[offset++];
+                        int hour = data[offset++];
+                        int minute = data[offset++];
+                        int second = data[offset++];
+                        UInt64 week = data[13];
+                        try {
+                            DateTime date = new DateTime(year, month, day, hour, minute, second);
+                            decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
+                            decodeParam(ref rtBox, "Week", week);
+                        } catch {
+                            string hex = BitConverter.ToString(data, 10, 5).Replace('-', ' ');
+                            appendTxt(ref rtBox, " Wrong DateTime Parameter=" + hex, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd2 | 0x34: // ACK Response time
+                    {
+                        appendTxt(ref rtBox, "Response time", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd3 | 0x34: // Send Status from MCU to module
                     {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
                         appendTxt(ref rtBox, " Cmd", colorCmd);
@@ -1125,6 +1218,36 @@ namespace SniffUART {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
                         int respStatus = data[7];
                         decodeResponse(ref rtBox, respStatus, true, true);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmd4 | 0x34: // Response Reset
+                    {
+                        appendTxt(ref rtBox, "Reset", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd4 | 0x34: // Reset Cmd
+                    {
+                        appendTxt(ref rtBox, "Reset", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmd5 | 0x34: // Reset Status
+                    {
+                        appendTxt(ref rtBox, "Reset Status", colorCmd);
+                        int state = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref ResetStates, colorData, state, true);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd5 | 0x34: // ACK Reset Status
+                    {
+                        appendTxt(ref rtBox, "Reset Status", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
                     }
                     break;
 
@@ -1152,6 +1275,32 @@ namespace SniffUART {
                         int mapId = (data[8] << 8) + data[9];
                         appendTxt(ref rtBox, " Id=0x", colorDP);
                         appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
+                    }
+                    break;
+
+                case Ver0 | DLenX | SCmd7 | 0x34: // Response Get information about Wi-Fi module
+                    {
+                        appendTxt(ref rtBox, "Wi-Fi Infos", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true);
+                        if (dataLen > 8) {
+                            string infoTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
+                            appendTxt(ref rtBox, " " + infoTxt, colorData);
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLen2 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                case Ver3 | DLen3 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                case Ver3 | DLen4 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                case Ver3 | DLenX | SCmd7 | 0x34: // Get information about Wi-Fi module
+                    {
+                        appendTxt(ref rtBox, "Get Wi-Fi Infos", colorCmd);
+                        int offset = 7;
+                        while (offset < (num - 1)) {
+                            int info = data[offset++];
+                            bErr |= decodeDictParam(ref rtBox, ref WiFiInfos, colorData, info, true);
+                        } // while
                     }
                     break;
 
@@ -1198,6 +1347,29 @@ namespace SniffUART {
                                 appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
                                 bErr = true;
                             }
+                        }
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmd1 | 0x36: // Response Enable the extended DP service
+                    {
+                        appendTxt(ref rtBox, "Enable ext. DP service", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true);
+                    }
+                    break;
+
+                case Ver3 | DLen3 | SCmd1 | 0x36: // Enable the extended DP service
+                    {
+                        appendTxt(ref rtBox, "Enable ext. DP service", colorCmd);
+                        int flag = data[7];
+                        if (flag == 0) {
+                            appendTxt(ref rtBox, " disable", colorInfo);
+                        } else if (flag == 1) {
+                            appendTxt(ref rtBox, " enable", colorInfo);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong Flag=" + flag, colorErr);
+                            bErr = true;
                         }
                     }
                     break;
@@ -1530,7 +1702,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd0 | 0x65: // Voice module wake up
+                case Ver0 | DLen2 | SCmd0 | 0x65: // Voice module play
                     {
                         appendTxt(ref rtBox, "Voice Module Play", colorCmd);
                         int respStatus = data[7];
@@ -1538,7 +1710,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLenX | SCmd0 | 0x65: // Voice module wake up
+                case Ver3 | DLenX | SCmd0 | 0x65: // Voice module play list
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
@@ -1546,7 +1718,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLenX | SCmd1 | 0x65: // Voice module wake up
+                case Ver0 | DLenX | SCmd1 | 0x65: // Voice module play list
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
@@ -1554,7 +1726,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen2 | SCmd1 | 0x65: // Voice module wake up
+                case Ver3 | DLen2 | SCmd1 | 0x65: // Voice module Play
                     {
                         appendTxt(ref rtBox, "Voice Module Play", colorCmd);
                         int respStatus = data[7];
@@ -1577,7 +1749,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd3 | 0x65: // Voice module wake up
+                case Ver0 | DLen2 | SCmd3 | 0x65: // Voice module ASR
                     {
                         appendTxt(ref rtBox, "Voice Module ASR", colorCmd);
                         int respStatus = data[7];
@@ -1585,7 +1757,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen2 | SCmd3 | 0x65: // Voice module wake up
+                case Ver3 | DLen2 | SCmd3 | 0x65: // Response Voice module ASR
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         int asrCmd = data[7]; // automatic speech recognition
@@ -1593,14 +1765,14 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen1 | SCmd4 | 0x65: // Voice module wake up
+                case Ver0 | DLen1 | SCmd4 | 0x65: // Voice module Query play media
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         appendTxt(ref rtBox, " Query Play Media", colorSubCmd);
                     }
                     break;
 
-                case Ver3 | DLenX | SCmd4 | 0x65: // Voice module wake up
+                case Ver3 | DLenX | SCmd4 | 0x65: // Response Voice module play media
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
@@ -1608,14 +1780,14 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen1 | SCmd5 | 0x65: // Voice module wake up
+                case Ver3 | DLen1 | SCmd5 | 0x65: // Voice module Query playlist
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         appendTxt(ref rtBox, " Query Playlist", colorSubCmd);
                     }
                     break;
 
-                case Ver0 | DLenX | SCmd5 | 0x65: // Voice module wake up
+                case Ver0 | DLenX | SCmd5 | 0x65: // Response Voice module query playlist
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         int respStatus = data[7];
@@ -1633,7 +1805,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd6 | 0x65: // Voice module wake up
+                case Ver0 | DLen2 | SCmd6 | 0x65: // Voice module Call
                     {
                         appendTxt(ref rtBox, "Voice Module Call", colorCmd);
                         int respStatus = data[7];
@@ -1641,7 +1813,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen2 | SCmd6 | 0x65: // Voice module wake up
+                case Ver3 | DLen2 | SCmd6 | 0x65: // Response Voice module Call
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         int vcCmd = data[7]; // voice cmd
@@ -1649,7 +1821,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd7 | 0x65: // Voice module wake up
+                case Ver0 | DLen2 | SCmd7 | 0x65: // Voice module Start Rec
                     {
                         appendTxt(ref rtBox, "Voice Module Start Recording", colorCmd);
                         int respStatus = data[7];
@@ -1657,7 +1829,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen2 | SCmd7 | 0x65: // Voice module wake up
+                case Ver3 | DLen2 | SCmd7 | 0x65: // Response Voice module Start Rec
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         int recCmd = data[7]; // start recording
@@ -1669,7 +1841,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | SCmd8 | 0x65: // Voice module wake up
+                case Ver0 | DLen2 | SCmd8 | 0x65: // Voice module Stop Rec
                     {
                         appendTxt(ref rtBox, "Voice Module Stop Recording", colorCmd);
                         int respStatus = data[7];
@@ -1677,7 +1849,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen2 | SCmd8 | 0x65: // Voice module start/stop recording
+                case Ver3 | DLen2 | SCmd8 | 0x65: // Response Voice module start/stop recording
                     {
                         appendTxt(ref rtBox, "Voice Module", colorCmd);
                         int recStatus = data[7];
@@ -1801,6 +1973,61 @@ namespace SniffUART {
                         appendTxt(ref rtBox, "Turn on/off local alarm", colorCmd);
                         int onOff = data[7];
                         bErr |= decodeDictParam(ref rtBox, ref SwitchLocalAlarms, colorParam, onOff, false);
+                    }
+                    break;
+
+                case Ver0 | DLenX | SCmdd | 0x65: // Response Change Alarm
+                    {
+                        appendTxt(ref rtBox, "Change alarm", colorCmd);
+                        int cmdAlarm = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref SetAlarms, colorParam, cmdAlarm, false);
+                        int op = data[8];
+                        bErr |= decodeDictParam(ref rtBox, ref AlarmOpResponses, colorParam, op, false);
+                    }
+                    break;
+
+                case Ver3 | DLenX | SCmdd | 0x65: // Change Alarm
+                    {
+                        appendTxt(ref rtBox, "Change alarm", colorCmd);
+                        int cmdAlarm = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref SetAlarms, colorParam, cmdAlarm, false);
+                        if (dataLen > 8) {
+                            string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
+                            appendTxt(ref rtBox, " " + alarmTxt, colorData);
+                        }
+                        int offset = 9;
+                        UInt64 timerId = (UInt64)(data[offset++] << 40) + (UInt64)(data[offset++] << 32) + (UInt64)(data[offset++] << 24) + (UInt64)(data[offset++] << 16) + (UInt64)(data[offset++] << 8) + data[offset++];
+                        decodeParam(ref rtBox, "TimerId", timerId, 12);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmde | 0x65: // Response Query the number of reminders
+                    {
+                        appendTxt(ref rtBox, "Query number of reminders", colorCmd);
+                        UInt64 numReminder = data[6];
+                        decodeParam(ref rtBox, "#", numReminder, 0);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmde | 0x65: // Query the number of reminders
+                    {
+                        appendTxt(ref rtBox, "Query number of reminders", colorCmd);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmdf | 0x65: // Response Send alarm data 
+                    {
+                        appendTxt(ref rtBox, "Send alarm data", colorCmd);
+                        int op = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref AlarmOpResponses, colorInfo, op, false);
+                    }
+                    break;
+
+                case Ver3 | DLenX | SCmdf | 0x65: // Send alarm data 
+                    {
+                        appendTxt(ref rtBox, "Send alarm data", colorCmd);
+                        string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
+                        appendTxt(ref rtBox, " " + alarmTxt, colorData);
                     }
                     break;
 
