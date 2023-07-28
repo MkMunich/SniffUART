@@ -314,7 +314,27 @@ namespace SniffUART {
             { 0x02, "Country code" },
         };
 
+        public static Dictionary<int, string> BluetoothStatus = new Dictionary<int, string>
+        {
+            { -1, "Status" },
+            { 0x00, "Unbound and not connected" },
+            { 0x01, "Unbound and connected" },
+            { 0x02, "Bound and not connected" },
+            { 0x03, "Bound and connected" },
+            { 0x04, "Unknown status" },
+        };
 
+        public static Dictionary<int, string> BluetoothLEDStatus = new Dictionary<int, string>
+        {
+            { -1, "LEDStatus" },
+            { 0x00, "Blink quickly" },
+            { 0x01, "Steady off" },
+            { 0x02, "Steady off" },
+            { 0x03, "Steady on" },
+            { 0x04, "Blink slowly" },
+        };
+
+        //*********************************************************************************************************************************
         private static bool decodeDictParam(ref RichTextBox rtBox, ref Dictionary<int, string> dict, Color col, int param, bool bHex) {
             try {
                 string dictTxt = dict[param];
@@ -446,7 +466,7 @@ namespace SniffUART {
         }
 
         private static bool hasSubCmd(int cmd) {
-            if (cmd == 0x33 || cmd == 0x34 || cmd == 0x37 || cmd == 0x65) {
+            if (cmd == 0x33 || cmd == 0x34 || cmd == 0x35 || cmd == 0x37 || cmd == 0x65) {
                 return true;
             }
             return false;
@@ -606,7 +626,7 @@ namespace SniffUART {
                             if (ver == 0)
                                 appendTxt(ref rtBox, " ACK", colorACK);
                             else
-                                appendTxt(ref rtBox, " Cmd", colorCmd);
+                                appendTxt(ref rtBox, " Cmd", colorSubCmd);
                         } else if (dataLen == 1) {
                             int netCfg = data[6];
                             if (netCfg == 0) {
@@ -747,7 +767,7 @@ namespace SniffUART {
                         if (obtainFlag == 0) {
                             int err = data[7];
                             appendTxt(ref rtBox, " error=", colorErr);
-                            appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : (err == 0) ? "No authorization key" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
+                            appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : (err == 1) ? "No authorization key" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
                         } else if (obtainFlag == 1) {
                             UInt64 signal = data[7];
                             decodeParam(ref rtBox, "Signal", signal);
@@ -831,7 +851,6 @@ namespace SniffUART {
                 case Ver3 | DLenX | 0x20: // Weather Service specification
                     {
                         appendTxt(ref rtBox, "Enable weather services", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorCmd);
                         bErr |= decodeWeatherParameter(ref rtBox, ref data, num, false, 6);
                     }
                     break;
@@ -1024,7 +1043,7 @@ namespace SniffUART {
                 case Ver3 | DLen0 | 0x2f: // Cmd IR functionality test
                     {
                         appendTxt(ref rtBox, "IR Test", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
                     }
                     break;
 
@@ -1209,7 +1228,7 @@ namespace SniffUART {
                 case Ver3 | DLen1 | SCmd3 | 0x34: // Send Status from MCU to module
                     {
                         appendTxt(ref rtBox, "Send Status", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
                     }
                     break;
 
@@ -1348,6 +1367,72 @@ namespace SniffUART {
                                 bErr = true;
                             }
                         }
+                    }
+                    break;
+
+                case Ver0 | DLen3 | SCmd1 | 0x35: // Response Bluetooth functional test
+                    {
+                        appendTxt(ref rtBox, "Bluetooth functional test", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, false);
+                        if (respStatus == 0) {
+                            int err = data[8];
+                            appendTxt(ref rtBox, " error=", colorErr);
+                            appendTxt(ref rtBox, (err == 0) ? "No beacon" : (err == 1) ? "No license" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
+                        } else {
+                            UInt64 signal = data[8];
+                            decodeParam(ref rtBox, "Signal", signal);
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd1 | 0x35: // Cmd Bluetooth functional test
+                    {
+                        appendTxt(ref rtBox, "Bluetooth functional test", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmd4 | 0x35: // Response Bluetooth Status
+                case Ver3 | DLen2 | SCmd5 | 0x35: // Response Bluetooth connection status
+                    {
+                        appendTxt(ref rtBox, "Bluetooth Status", colorCmd);
+                        int state = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref BluetoothStatus, colorInfo, state, true);
+                        bErr |= decodeDictParam(ref rtBox, ref BluetoothLEDStatus, colorParam, state, true);
+                    }
+                    break;
+
+                case Ver0 | DLen1 | SCmd4 | 0x35: // ACK Bluetooth Status
+                    {
+                        appendTxt(ref rtBox, "Bluetooth Status", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd5 | 0x35: // Request Bluetooth connection status
+                    {
+                        appendTxt(ref rtBox, "Request Bluetooth connection status", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                    }
+                    break;
+
+                case Ver0 | DLenX | SCmd6 | 0x35: // Data notification for Bluetooth/Beacon remote control
+                    {
+                        appendTxt(ref rtBox, "Data notification for Bluetooth/Beacon remote control", colorCmd);
+                        UInt64 catId = data[7];
+                        decodeParam(ref rtBox, "CatId", catId);
+                        UInt64 ctrlCmd = data[8];
+                        decodeParam(ref rtBox, "CtrlCmd", ctrlCmd);
+                        UInt64 cmdData = (UInt64)((data[9] << 24) + (data[10] << 16) + (data[11] << 8) + data[12]);
+                        decodeParam(ref rtBox, "CmdData", cmdData, 8);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd6 | 0x35: // ACK Data notification for Bluetooth/Beacon remote control
+                    {
+                        appendTxt(ref rtBox, "Data notification for Bluetooth/Beacon remote control", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
                     }
                     break;
 
@@ -1625,7 +1710,7 @@ namespace SniffUART {
                 case Ver3 | DLen0 | 0x60: // Voice features
                     {
                         appendTxt(ref rtBox, "Voice Features", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
                     }
                     break;
 
@@ -1698,7 +1783,7 @@ namespace SniffUART {
                 case Ver3 | DLen0 | 0x64: // Test waking up voice assistant
                     {
                         appendTxt(ref rtBox, "Test Waking Up", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
                     }
                     break;
 

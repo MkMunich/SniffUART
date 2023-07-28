@@ -426,21 +426,32 @@
 // Wi-Fi Infos Success {"ap":"PlusStyle"}
 55 aa 00 34 00 14 07 00 7b 22 61 70 22 3a 22 50 6c 75 73 53 74 79 6c 65 22 7d 8e
 
-// 
-55 aa 00 35 00 03 01 01 14 4d
-
-// 
-55 aa 00 35 00 02 04 03 3d
-
-// 
-55 aa 00 35 00 01 04 39
-
-// 
-55 aa 03 35 00 01 05 3D
-
-//
-55 aa 03 35 00 02 05 00 3E
-
-// 
+// Bluetooth functional test Cmd
 55 aa 03 35 00 01 01 39
 
+// Bluetooth functional test Success Signal=20
+55 aa 00 35 00 03 01 01 14 4d
+
+// Bluetooth Status Bound and connected LEDStatus=Steady on
+55 aa 00 35 00 02 04 03 3d
+
+// Bluetooth Status ACK
+55 aa 00 35 00 01 04 39
+
+// Request Bluetooth connection status Cmd
+55 aa 03 35 00 01 05 3D
+
+// Bluetooth Status Unbound and not connected LEDStatus=Blink quickly
+55 aa 03 35 00 02 05 00 3E
+
+// Data notification for Bluetooth/Beacon remote control CatId=17 CtrlCmd=34 CmdData=0x01020304
+55 aa 00 35 00 07 06 11 22 01 02 03 04 7e
+// wrong example in Tuya spec
+
+// Data notification for Bluetooth/Beacon remote control ACK
+55 aa 03 35 00 01 06 3e
+// wrong example in Tuya spec
+
+// Control commands
+// 
+55 aa 03 36 00 02 01 01 3c

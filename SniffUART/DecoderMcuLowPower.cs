@@ -112,7 +112,7 @@ namespace SniffUART {
                             break;
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
                         } else {
                             appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
                             bErr = true;
@@ -187,7 +187,7 @@ namespace SniffUART {
                             break;
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
                         } else if (dataLen == 8) {
                             int obtainFlag = data[6];
                             if (obtainFlag == 0) {
@@ -231,7 +231,7 @@ namespace SniffUART {
                             break;
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
                         } else if (dataLen == 2) {
                             int obtainFlag = data[6];
                             if (obtainFlag == 0) {
@@ -346,7 +346,7 @@ namespace SniffUART {
                             break;
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
                         } else if (dataLen == 2) {
                             int obtainFlag = data[6];
                             if (obtainFlag == 0) {
@@ -381,7 +381,7 @@ namespace SniffUART {
                             break;
                         int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
                         } else if (dataLen == 1) {
                             int fwUpdRet = data[6];
                             try {
