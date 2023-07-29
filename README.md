@@ -71,6 +71,7 @@ There are three views available:
 
 
 Dialog 'Decode Messages':
+
 ![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/Decode%20Messages.png)
 
 This dialog provides a way to drop messages (as hex dump) into SniffUART. Every line must be one singel Tuya message in hex bytes.
@@ -89,7 +90,9 @@ This will allow you to persist all recording and to display it again lateron. Al
 Timing:
 Every decoded message will get a time stamp, when received. Timing will be persistet as well (Save as.. / Import..).
 In order to measure a time delta between two messages, just select both messages and the time diff will be displayed in the bottom of the dialog.
-Example of a Tuya door contact (decoder class: McuLowPower)
+
+
+An example of a Tuya door contact (decoder class: McuLowPower)
 ![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/SniffUART%20McuLowPower.png)
 
 
