@@ -185,6 +185,7 @@
             // 
             // tBoxNo
             // 
+            this.tBoxNo.Enabled = false;
             this.tBoxNo.Location = new System.Drawing.Point(90, 38);
             this.tBoxNo.Name = "tBoxNo";
             this.tBoxNo.ReadOnly = true;

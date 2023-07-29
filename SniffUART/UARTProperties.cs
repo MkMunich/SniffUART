@@ -187,8 +187,8 @@ namespace SniffUART
         {
             try {
                 portName = tBoxName.Text;
-                _frm._portName[_uartReal] = tBoxName.Text;
-                _frm._uarts[_uartReal].PortName = cBoxUART.GetItemText(cBoxUART.SelectedItem);
+                _frm._portName[_uartReal] = portName;
+                _frm._uarts[_uartReal].PortName = cBoxUART.GetItemText(cBoxUART.Text);
                 _frm._uarts[_uartReal].BaudRate = (cBoxBaudRate.Text != "") ? int.Parse(cBoxBaudRate.Text) : 1;
                 _frm._uarts[_uartReal].Parity = (cBoxParity.Text == "") ? _frm._uarts[_uartReal].Parity : (Parity)Enum.Parse(typeof(Parity), cBoxParity.Text, true);
                 _frm._uarts[_uartReal].DataBits = (tBoxDataBits.Text == "") ? _frm._uarts[_uartReal].DataBits : int.Parse(tBoxDataBits.Text);

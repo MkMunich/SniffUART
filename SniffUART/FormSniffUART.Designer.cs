@@ -342,8 +342,9 @@
             // showHelpToolStripMenuItem
             // 
             this.showHelpToolStripMenuItem.Name = "showHelpToolStripMenuItem";
-            this.showHelpToolStripMenuItem.Size = new System.Drawing.Size(131, 22);
+            this.showHelpToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.showHelpToolStripMenuItem.Text = "Show Help";
+            this.showHelpToolStripMenuItem.Click += new System.EventHandler(this.showHelpToolStripMenuItem_Click);
             // 
             // SearchToolStripTextBox
             // 

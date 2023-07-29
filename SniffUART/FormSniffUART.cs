@@ -72,7 +72,7 @@ namespace SniffUART {
             wiFiLowPowerDevicesToolStripMenuItem.Checked = (_mcuProtocol == 1);
             wiFiHomeKitToolStripMenuItem.Checked = (_mcuProtocol == 2);
 
-            _portName[0] = (Properties.Settings.Default.ToggleData == "") ? "CB3S" : Properties.Settings.Default.ToggleData;
+            _portName[0] = (Properties.Settings.Default.UART0_Name == "") ? "CB3S" : Properties.Settings.Default.UART0_Name;
             _uarts[0].PortName = (Properties.Settings.Default.UART0_PortName == "") ? _uarts[0].PortName : Properties.Settings.Default.UART0_PortName;
             _uarts[0].BaudRate = (Properties.Settings.Default.UART0_BaudRate == "") ? _uarts[0].BaudRate : int.Parse(Properties.Settings.Default.UART0_BaudRate);
             _uarts[0].Parity = (Properties.Settings.Default.UART0_Parity == "") ? _uarts[0].Parity : (Parity)Enum.Parse(typeof(Parity), Properties.Settings.Default.UART0_Parity, true);
@@ -553,6 +553,12 @@ namespace SniffUART {
                 System.Windows.Forms.Clipboard.SetText(s.Trim('\n'));
             }
         */
+        }
+
+        private void showHelpToolStripMenuItem_Click(object sender, EventArgs e) {
+            // open SniffUART in Github
+            string target = "https://github.com/MkMunich/SniffUART";
+            System.Diagnostics.Process.Start(target);
         }
     }
 }
