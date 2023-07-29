@@ -10,12 +10,14 @@ Tuya messages are documented here:
 
     McuHomeKit: https://developer.tuya.com/en/docs/iot/wifi-module-mcu-development-overview-for-homekit?id=Kaa8fvusmgapc
 
+![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/Mcu%20Protocol%20Menu.PNG)
 The first two specifications are fully done. Perhaps someone has time to complete the third decoding (file DecoderMcuHomeKit.cs)?
 SniffUART need to be configured to decode Tuya messages of one decoder 'class' above (menu MCU Protocoll->*). This decoder is taken first. If decoding fails, then SniffUART will try the other classes. If decoding is successful, then it will output a (red) hint, which decoder class had been used.
 I am assuming, that only one decoder class is valid at one tim; depending on the used Tuya device.
 
 
 # A Quick Guide How-To
+
 In order to record serial communication you'll need 2 USB serial adapters. they should be wired as follows:
 As here, the Tuya door contact device is battery powered and the power of the CBS3 module is controlled by MCU, you'll need to solder power wires directly to the CBS3.
 
@@ -40,6 +42,8 @@ RX to CB3S TXD1 pin 16	// so this adapter will record the messages sent by Tucy 
 
 
 Set up USB ports:
+![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/Port%20Setting%20dialog.png)
+
 Normally the CBS3 module communicates with Tuya MCU using the default settings
 
 	9600 baud, 8 bits, Non parity, One stop bit, No handshake
@@ -64,6 +68,7 @@ There are three views available:
 
 
 Dialog 'Decode Messages':
+![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/SniffUART%20dialog.png)
 
 This dialog provides a way to drop messages (as hex dump) into SniffUART. Every line must be one singel Tuya message in hex bytes.
 A list of Tuya message examples (directly taken from the Tuya specification) are found in 'Test McuSerPortMsg.txt' and 'Test McuLowPowerMsg.txt'.
@@ -81,10 +86,8 @@ This will allow you to persist all recording and to display it again lateron. Al
 Timing:
 Every decoded message will get a time stamp, when received. Timing will be persistet as well (Save as.. / Import..).
 In order to measure a time delta between two messages, just select both messages and the time diff will be displayed in the bottom of the dialog.
-
-![image](https://user-images.githubusercontent.com/85486843/235418671-03ec416c-eef0-40b2-97a7-c41c0b4d757b.png)
-Ver 0.1:
-![image](https://user-images.githubusercontent.com/85486843/230483065-1a87ef91-b144-43b4-b200-9cf3f1f408d4.png)
+Example of a Tuya door contact (decoder class: McuLowPower)
+![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/SniffUART%20McuLowPower.png)
 
 
 # Compiling
