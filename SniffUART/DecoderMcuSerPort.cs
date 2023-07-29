@@ -235,7 +235,7 @@ namespace SniffUART {
 
         public static Dictionary<int, string> TestWakingUpCmds = new Dictionary<int, string>
         {
-            { -1, "VoiceTesting Wake Up Cmd" },
+            { -1, "VoiceTesting cmd" },
             { 0x00, "Failed to be woken up" },
             { 0x01, "Woken up successfully" },
         };
@@ -334,65 +334,30 @@ namespace SniffUART {
             { 0x04, "Blink slowly" },
         };
 
+        public static Dictionary<int, string> DataSources = new Dictionary<int, string>
+        {
+            { -1, "DataSources" },
+            { 0x00, "Unkown" },
+            { 0x01, "LAN" },
+            { 0x02, "WAN" },
+            { 0x03, "Scheduled tasks in LAN" },
+            { 0x04, "Scene linkage in WAN" },
+            { 0x05, "reliable channels" },
+            { 0x06, "Bluetooth" },
+            { 0x07, "Scene linkage in LAN" },
+            { 0xf0, "Offline voice modules" },
+        };
+
+        public static Dictionary<int, string> McuReportStatus = new Dictionary<int, string>
+        {
+            { -1, "McuReportStatus" },
+            { 0x00, "MCU proactively reports status" },
+            { 0x01, "MCU responds to status queries" },
+            { 0x02, "MCU responds to commands of extended DPs" },
+        };
+
+
         //*********************************************************************************************************************************
-        private static bool decodeDictParam(ref RichTextBox rtBox, ref Dictionary<int, string> dict, Color col, int param, bool bHex) {
-            try {
-                string dictTxt = dict[param];
-                if (col == colorParam) { // display as parameter
-                    string name = dict[-1];
-                    appendTxt(ref rtBox, " " + name + "=", colorParam);
-                    appendTxt(ref rtBox, dictTxt, colorData);
-                } else {
-                    appendTxt(ref rtBox, " " + dictTxt, col);
-                }
-            } catch {
-                string name = dict[-1];
-                if (bHex) {
-                    appendTxt(ref rtBox, " Wrong " + name + "=0x" + param.ToString("X2"), colorErr);
-                } else {
-                    appendTxt(ref rtBox, " Wrong " + name + "=" + param.ToString(), colorErr);
-                }
-                return true;
-            }
-            return false;
-        }
-
-        private static void decodeParamStr(ref RichTextBox rtBox, string name, string param) {
-            appendTxt(ref rtBox, " " + name + "=", colorParam);
-            appendTxt(ref rtBox, param, colorData);
-        }
-
-        private static void decodeParam(ref RichTextBox rtBox, string name, UInt64 param, int iHex = 0) {
-            appendTxt(ref rtBox, " " + name + "=" + ((iHex > 0) ? "0x" : ""), colorParam);
-            switch (iHex) {
-                case 2:
-                    appendTxt(ref rtBox, param.ToString("X2"), colorData);
-                break;
-                case 4:
-                    appendTxt(ref rtBox, param.ToString("X4"), colorData);
-                break;
-                case 8:
-                    appendTxt(ref rtBox, param.ToString("X8"), colorData);
-                break;
-                case 12:
-                appendTxt(ref rtBox, param.ToString("X12"), colorData);
-                    break;
-                default:
-                    appendTxt(ref rtBox, param.ToString(), colorData);
-                break;
-            } // switch
-        }
-
-        private static void decodeResponse(ref RichTextBox rtBox, int resp, bool bInverse, bool bVerb = false) {
-            if ((!bInverse && resp == 0) || (bInverse && resp == 1)) {
-                appendTxt(ref rtBox, bVerb ? " failed" : " Failure", colorErr);
-            } else if ((!bInverse && resp == 1) || (bInverse && resp == 0)) {
-                appendTxt(ref rtBox, bVerb ? " sucessful" : " Success", colorACK);
-            } else {
-                appendTxt(ref rtBox, " Wrong Resp=" + resp, colorErr);
-            }
-        }
-
         private static void decodeAbv(ref RichTextBox rtBox, int abv) {
             appendTxt(ref rtBox, " avb=(", colorParam);
             appendTxt(ref rtBox, "Combo module:", colorDP);
@@ -466,7 +431,7 @@ namespace SniffUART {
         }
 
         private static bool hasSubCmd(int cmd) {
-            if (cmd == 0x33 || cmd == 0x34 || cmd == 0x35 || cmd == 0x37 || cmd == 0x65) {
+            if (cmd == 0x33 || cmd == 0x34 || cmd == 0x35 || cmd == 0x36 || cmd == 0x37 || cmd == 0x65 || cmd == 0x72) {
                 return true;
             }
             return false;
@@ -659,8 +624,8 @@ namespace SniffUART {
                                 bErr = true;
                             }
                         } else {
-                            int offset = 6; // start index to read DP units
                             // decode all DP units
+                            int offset = 6; // start index to read DP units
                             while (bErr == false && offset < (num - 1)) {
                                 bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
                             } // while
@@ -1444,7 +1409,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen3 | SCmd1 | 0x36: // Enable the extended DP service
+                case Ver3 | DLen2 | SCmd1 | 0x36: // Enable the extended DP service
                     {
                         appendTxt(ref rtBox, "Enable ext. DP service", colorCmd);
                         int flag = data[7];
@@ -1454,6 +1419,44 @@ namespace SniffUART {
                             appendTxt(ref rtBox, " enable", colorInfo);
                         } else {
                             appendTxt(ref rtBox, " Wrong Flag=" + flag, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | DLenX | SCmd2 | 0x36: // Send commands of extended DPs
+                    {
+                        appendTxt(ref rtBox, "Send commands of extended DPs", colorCmd);
+                        int dataSrc = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref DataSources, colorData, dataSrc, true);
+
+                        // decode all DP units
+                        int offset = 8; // start index to read DP units
+                        while (bErr == false && offset < (num - 1)) {
+                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLenX | SCmd3 | 0x36: // Report status of extended DPs
+                    {
+                        appendTxt(ref rtBox, "Report status of extended DPs", colorCmd);
+                        int repStatus = data[7];
+                        bErr |= decodeDictParam(ref rtBox, ref McuReportStatus, colorData, repStatus, true);
+                        int dataSrc = data[8];
+                        bErr |= decodeDictParam(ref rtBox, ref DataSources, colorData, dataSrc, true);
+
+                        // decode all DP units
+                        int offset = 9; // start index to read DP units
+                        while (bErr == false && offset < (num - 1)) {
+                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
                             bErr = true;
                         }
                     }
@@ -2113,6 +2116,40 @@ namespace SniffUART {
                         appendTxt(ref rtBox, "Send alarm data", colorCmd);
                         string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
                         appendTxt(ref rtBox, " " + alarmTxt, colorData);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmd1 | 0x72: // Response Fan functional test
+                    {
+                        appendTxt(ref rtBox, "Fan Functional Test", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true);
+                    }
+                    break;
+
+                case Ver3 | DLen3 | SCmd1 | 0x72: // Fan functional test
+                    {
+                        appendTxt(ref rtBox, "Fan Functional Test", colorCmd);
+                        UInt64 fanSpeed = data[7];
+                        decodeParam(ref rtBox, "Speed", fanSpeed, 0);
+                        UInt64 holdTime = data[8];
+                        decodeParam(ref rtBox, "Hold-Time", holdTime, 0);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | SCmd2 | 0x72: // Response Set duty cycle
+                    {
+                        appendTxt(ref rtBox, "Set Fan", colorCmd);
+                        int respStatus = data[7];
+                        decodeResponse(ref rtBox, respStatus, true, true);
+                    }
+                    break;
+
+                case Ver3 | DLen2 | SCmd2 | 0x72: // Set duty cycle
+                    {
+                        appendTxt(ref rtBox, "Set Fan", colorCmd);
+                        UInt64 dutyCycle = data[7];
+                        decodeParam(ref rtBox, "DutyCycle", dutyCycle, 0);
                     }
                     break;
 

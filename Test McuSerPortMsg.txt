@@ -453,5 +453,26 @@
 // wrong example in Tuya spec
 
 // Control commands
-// 
+// Enable ext. DP service enable
 55 aa 03 36 00 02 01 01 3c
+
+// Enable ext. DP service Success
+55 aa 00 36 00 02 01 00 38
+
+// Send commands of extended DPs LAN DP=3 Bool=True
+55 aa 00 36 00 07 02 01 03 01 00 01 01 45
+
+// Report status of extended DPs MCU responds to commands of extended DPs WAN DP=5 Value=30
+55 aa 03 36 00 0b 03 02 02 05 02 00 04 00 00 00 1e 73
+
+// Fan Functional Test Speed=10 Hold-Time=5
+55 aa 03 72 00 03 01 0a 05 87
+
+// Fan Functional Test Success
+55 aa 00 72 00 02 01 00 74
+
+// Set Fan DutyCycle=10
+55 aa 03 72 00 02 02 0a 82
+
+// Set Fan sucessful
+55 aa 00 72 00 02 02 00 75

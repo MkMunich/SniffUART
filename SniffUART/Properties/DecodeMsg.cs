@@ -22,8 +22,9 @@ namespace SniffUART {
             eMcuHomeKit,
         };
 
-        public static Dictionary<int, string> dataTypes = new Dictionary<int, string>
+        public static Dictionary<int, string> DataTypes = new Dictionary<int, string>
         {
+            { -1, "DataType" },
             { 0, "Raw" },
             { 1, "Bool" },
             { 2, "Value" },
@@ -34,6 +35,7 @@ namespace SniffUART {
 
         public static Dictionary<int, string> ReportStates = new Dictionary<int, string>
         {
+            { -1, "Result" },
             { 0x00, "Reported successfully" },
             { 0x01, "The current record is reported successfully, and previously saved records need to be reported" },
             { 0x02, "Failed to report" },
@@ -41,6 +43,7 @@ namespace SniffUART {
 
         public static Dictionary<int, string> FWUpdateReturns = new Dictionary<int, string>
         {
+            { -1, "Result" },
             { 0x00, "(Start to detect firmware upgrading) Do not power off" },
             { 0x01, "(No firmware to upgrade) Power off" },
             { 0x02, "(Upgrading the firmware) Do not power off" },
@@ -50,10 +53,70 @@ namespace SniffUART {
 
         public static Dictionary<int, string> ResultFeatures = new Dictionary<int, string>
         {
+            { -1, "Result" },
             { 0x00, "Success" },
             { 0x01, "Invalid Data" },
             { 0x02, "Failure" },
         };
+
+        //*********************************************************************************************************************************
+        public static bool decodeDictParam(ref RichTextBox rtBox, ref Dictionary<int, string> dict, Color col, int param, bool bHex) {
+            try {
+                string dictTxt = dict[param];
+                if (col == colorParam) { // display as parameter
+                    string name = dict[-1];
+                    appendTxt(ref rtBox, " " + name + "=", colorParam);
+                    appendTxt(ref rtBox, dictTxt, colorData);
+                } else {
+                    appendTxt(ref rtBox, " " + dictTxt, col);
+                }
+            } catch {
+                string name = dict[-1];
+                if (bHex) {
+                    appendTxt(ref rtBox, " Wrong " + name + "=0x" + param.ToString("X2"), colorErr);
+                } else {
+                    appendTxt(ref rtBox, " Wrong " + name + "=" + param.ToString(), colorErr);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public static void decodeParamStr(ref RichTextBox rtBox, string name, string param) {
+            appendTxt(ref rtBox, " " + name + "=", colorParam);
+            appendTxt(ref rtBox, param, colorData);
+        }
+
+        public static void decodeParam(ref RichTextBox rtBox, string name, UInt64 param, int iHex = 0) {
+            appendTxt(ref rtBox, " " + name + "=" + ((iHex > 0) ? "0x" : ""), colorParam);
+            switch (iHex) {
+                case 2:
+                appendTxt(ref rtBox, param.ToString("X2"), colorData);
+                break;
+                case 4:
+                appendTxt(ref rtBox, param.ToString("X4"), colorData);
+                break;
+                case 8:
+                appendTxt(ref rtBox, param.ToString("X8"), colorData);
+                break;
+                case 12:
+                appendTxt(ref rtBox, param.ToString("X12"), colorData);
+                break;
+                default:
+                appendTxt(ref rtBox, param.ToString(), colorData);
+                break;
+            } // switch
+        }
+
+        public static void decodeResponse(ref RichTextBox rtBox, int resp, bool bInverse, bool bVerb = false) {
+            if ((!bInverse && resp == 0) || (bInverse && resp == 1)) {
+                appendTxt(ref rtBox, bVerb ? " failed" : " Failure", colorErr);
+            } else if ((!bInverse && resp == 1) || (bInverse && resp == 0)) {
+                appendTxt(ref rtBox, bVerb ? " sucessful" : " Success", colorACK);
+            } else {
+                appendTxt(ref rtBox, " Wrong Resp=" + resp, colorErr);
+            }
+        }
 
         // color definitions of appearance
         public static Color colorErr = Color.Red; // error
@@ -139,13 +202,7 @@ namespace SniffUART {
             appendTxt(ref rtBox, dpid.ToString(), colorData);
 
             int type = data[offset + 1];
-            try {
-                string typeTxt = dataTypes[type];
-                appendTxt(ref rtBox, " " + typeTxt, colorType);
-            } catch {
-                appendTxt(ref rtBox, " Wrong DPType=" + type, colorErr);
-                return true;
-            }
+            bErr |= decodeDictParam(ref rtBox, ref DataTypes, colorInfo, type, true);
 
             int len = (data[offset + 2] << 8) + data[offset + 3];
             if (len == 0 || offset + 5 + len > num) { // testing the effective # bytes of a DP unit part failed
@@ -161,9 +218,9 @@ namespace SniffUART {
                 case 1: { // Bool
                         int val = data[offset + 4];
                         if (val == 0) {
-                            appendTxt(ref rtBox, "=False", colorData);
+                            appendTxt(ref rtBox, "=False", colorErr);
                         } else if (val == 1) {
-                            appendTxt(ref rtBox, "=True", colorData);
+                            appendTxt(ref rtBox, "=True", colorACK);
                         } else {
                             appendTxt(ref rtBox, " Wrong val=" + val, colorErr);
                             bErr = true;

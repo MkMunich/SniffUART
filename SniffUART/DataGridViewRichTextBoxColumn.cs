@@ -346,7 +346,7 @@ namespace DataGridViewRichTextBox
                     return true;
             }
 
-            return !dataGridViewWantsInputKey;
+            return ! dataGridViewWantsInputKey;
         }
 
         public Cursor EditingPanelCursor
