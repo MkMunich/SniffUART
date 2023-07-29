@@ -30,6 +30,7 @@ namespace SniffUART {
             }
 
             _readThread = new Thread(ReadLoop);
+            _readThread.Priority = ThreadPriority.Highest;
 
             // Allow the user to set the appropriate properties.
             _serialPort.PortName = _frm._uarts[_uartReal].PortName;

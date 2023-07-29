@@ -11,7 +11,7 @@ Tuya messages are documented here:
     McuHomeKit: https://developer.tuya.com/en/docs/iot/wifi-module-mcu-development-overview-for-homekit?id=Kaa8fvusmgapc
 
 The first two specifications are fully done. Perhaps someone has time to complete the third decoding (file DecoderMcuHomeKit.cs)?
-SniffUART need to be configured to decode Tuya messages of one decoder 'class' above (meny MCU Protocoll->*). This decoder is taken fisrt. If decoding fails, then SniffUART will try the other classes. If decoding is successful, then it will output a (red) hint, which decoder class had been used.
+SniffUART need to be configured to decode Tuya messages of one decoder 'class' above (menu MCU Protocoll->*). This decoder is taken first. If decoding fails, then SniffUART will try the other classes. If decoding is successful, then it will output a (red) hint, which decoder class had been used.
 I am assuming, that only one decoder class is valid at one tim; depending on the used Tuya device.
 
 
@@ -33,8 +33,8 @@ Gnd to CB3S GND
 RX to CB3S RXD1 pin 15	// so this adapter will record the messages sent by CB3S to Tucy MCU (Name this port 'CB3S' in port settings)
 
 
-Connect the first USB serial adapter as follows:
-Gnd to CB3S GND
+Connect the second USB serial adapter as follows:
+Gnd to CB3S GND	// needed to have a common ground!
 
 RX to CB3S TXD1 pin 16	// so this adapter will record the messages sent by Tucy MCU to CB3S (Name this port 'MCU' in port settings)
 

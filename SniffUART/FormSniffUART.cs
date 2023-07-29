@@ -377,8 +377,8 @@ namespace SniffUART {
                     } break;
                 case eLogType.eData:
                 case eLogType.eImport: {
-                        string dtStr = (string)data[2];
-                        string tsStr = (string)data[3];
+                        string dtStr = (string)data[2]; // date: time stamp
+                        string tsStr = (string)data[3]; // timespan: delta time
                         int rcvNum = (int)data[4];
                         Byte[] buf = (Byte[])data[5];
                         string hex = BitConverter.ToString(buf, 0, rcvNum).Replace('-', ' ');
@@ -415,30 +415,32 @@ namespace SniffUART {
         private void DGVData_RowEnter(object sender, DataGridViewCellEventArgs e) {
             Int32 selectedRowCount = DGVData.Rows.GetRowCount(DataGridViewElementStates.Selected);
             if (selectedRowCount > 0) {
-                string portTxt = (string)DGVData.Rows[e.RowIndex].Cells["colPort"].Value;
-                if (portTxt != null) {
-                    int idxPort = (_uarts[0].PortName == portTxt) ? 0 : 1;
-                    if (selectedRowCount == 1) {
-                        DateTime dtStart = _ports[idxPort]._dateStart;
-                        string timeTxt = (string)DGVData.Rows[e.RowIndex].Cells["colTime"].Value;
-                        DateTime date = DateTime.ParseExact(timeTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
-                        TimeSpan diff = date - dtStart;
-                        string diffTxt = diff.ToString(@"hh\:mm\:ss\.ff");
-                        toolStripStatusDeltaTime.Text = diffTxt;
-                    } else {
-                        DataGridViewRow rowStart = DGVData.SelectedRows[0];
-                        DataGridViewRow rowEnd = DGVData.SelectedRows[DGVData.SelectedRows.Count - 1];
-                        int idxStart = (rowStart.Index < rowEnd.Index) ? rowStart.Index : rowEnd.Index;
-                        int idxEnd = (rowStart.Index > rowEnd.Index) ? rowStart.Index : rowEnd.Index;
-                        string startTxt = (string)DGVData.Rows[idxStart].Cells["colTime"].Value;
-                        string endTxt = (string)DGVData.Rows[idxEnd].Cells["colTime"].Value;
-                        DateTime dateStart = DateTime.ParseExact(startTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
-                        DateTime dateEnd = DateTime.ParseExact(endTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
-                        TimeSpan diff = dateEnd - dateStart;
-                        string diffTxt = diff.ToString(@"hh\:mm\:ss\.ff");
-                        toolStripStatusDeltaTime.Text = diffTxt;
+                try {
+                    string portTxt = (string)DGVData.Rows[e.RowIndex].Cells[0].Value;
+                    if (portTxt != null) {
+                        int idxPort = (_uarts[0].PortName == portTxt) ? 0 : 1;
+                        if (selectedRowCount == 1) {
+                            DateTime dtStart = _ports[idxPort]._dateStart;
+                            string timeTxt = (string)DGVData.Rows[e.RowIndex].Cells[1].Value;
+                            DateTime date = DateTime.ParseExact(timeTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
+                            TimeSpan diff = date - dtStart;
+                            string diffTxt = diff.ToString(@"hh\:mm\:ss\.ff");
+                            toolStripStatusDeltaTime.Text = diffTxt;
+                        } else {
+                            DataGridViewRow rowStart = DGVData.SelectedRows[0];
+                            DataGridViewRow rowEnd = DGVData.SelectedRows[DGVData.SelectedRows.Count - 1];
+                            int idxStart = (rowStart.Index < rowEnd.Index) ? rowStart.Index : rowEnd.Index;
+                            int idxEnd = (rowStart.Index > rowEnd.Index) ? rowStart.Index : rowEnd.Index;
+                            string startTxt = (string)DGVData.Rows[idxStart].Cells[1].Value;
+                            string endTxt = (string)DGVData.Rows[idxEnd].Cells[1].Value;
+                            DateTime dateStart = DateTime.ParseExact(startTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
+                            DateTime dateEnd = DateTime.ParseExact(endTxt, "yy-MM-dd HH:mm:ss.ff", CultureInfo.InvariantCulture);
+                            TimeSpan diff = dateEnd - dateStart;
+                            string diffTxt = diff.ToString(@"hh\:mm\:ss\.ff");
+                            toolStripStatusDeltaTime.Text = diffTxt;
+                        }
                     }
-                }
+                } catch { }
             }
         }
 
