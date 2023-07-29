@@ -1,3 +1,11 @@
+// Test messages for McuLowPower
+
+// Heartbeat
+00
+
+// Heartbeat
+55 aa 00 00 00 00 ff
+
 // Product Query
 55 aa 00 01 00 00 00
 
@@ -96,12 +104,3 @@
 
 // Obtain DP Cache DP=115 Bool=True DP=114 Enum=1 DP=113 Value=30
 55 AA 00 10 00 14 01 03 73 01 00 01 01 72 04 00 01 01 71 02 00 04 00 00 00 1E AA
-
-// Features SubCmd=0 {"mcu_ota":0,"abv":3,"buf":1024}
-55 aa 03 37 00 21 00 7b 22 6d 63 75 5f 6f 74 61 22 3a 30 2c 22 61 62 76 22 3a 33 2c 22 62 75 66 22 3a 31 30 32 34 7d ac
-
-// Features SubCmd=0 McuOTA=Scratchpad
-55 aa 01 37 00 02 00 00 38
-
-// Features SubCmd=0 Success
-55 aa 03 37 00 02 00 00 3b

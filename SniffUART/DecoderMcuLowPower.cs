@@ -35,160 +35,156 @@ namespace SniffUART {
             // cmd is either the first byte or cmd from Frame message or -1 (means unknown)
             int ver = (num == 1) ? 0 : (num >= 4) ? data[2] : -1;
             int cmd = (num == 1) ? data[0] : (num >= 4) ? data[3] : -1;
+            int dataLen = (num > 5) ? (data[4] << 8) + data[5] : 0;
 
-            // bit8-11 version, bit0-7 cmd
+            //-----------------------------------------------------------------------
+            // bit12-15=DataLen, bit8-11=version, bit0-7=cmd
+            //-----------------------------------------------------------------------
             const int Ver0 = 0x0000;
             //const int Ver1 = 0x0100;
             //const int Ver2 = 0x0200;
             const int Ver3 = 0x0300;
 
-            int sw = (ver << 8) + cmd;
+            const int DLen0 = 0x00000; // dataLen == 0
+            const int DLen1 = 0x01000; // dataLen == 1
+            const int DLen2 = 0x02000; // dataLen == 2
+            const int DLen3 = 0x03000; // dataLen == 3
+            const int DLen4 = 0x04000; // dataLen == 4
+            const int DLenX = 0x05000; // dataLen > 4
+            int dlSw = (dataLen == 0) ? DLen0 : (dataLen == 1) ? DLen1 : (dataLen == 2) ? DLen2 : (dataLen == 3) ? DLen3 : (dataLen == 4) ? DLen4 : DLenX;
+
+            if (num >= 6) {
+                bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                if (bErr) { // if an error had been detected, then print all msg bytes in hex
+                    string hex = (num > 0) ? BitConverter.ToString(data, 0, num).Replace('-', ' ') : "-";
+                    appendTxt(ref rtBox, " No Frame Msg=", colorData);
+                    appendTxt(ref rtBox, hex, colorErr);
+                    return bErr;
+                }
+            }
+
+            int sw = (ver << 8) + dlSw + cmd;
             switch (sw) {
                 // Heartneat
-                case Ver0 | 0x00:
+                case Ver0 | DLen0 | 0x00:
+                case Ver0 | DLen1 | 0x00:
                     {
                         appendTxt(ref rtBox, "Heartbeat", colorCmd);
                         if (num > 1) {
-                            bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                            if (bErr)
-                                break;
-                            int dataLen = (data[4] << 8) + data[5];
-                            if (dataLen == 0) { // okay
-                            } else if (dataLen == 1) {
+                            if (dataLen == 1) {
                                 int startState = data[6];
                                 appendTxt(ref rtBox, (startState == 0) ? "MCU restarting" : "MCU running", colorData);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
                             }
                         }
                     }
                     break;
 
                 // [Query] product information
-                case Ver0 | 0x01: {
+                case Ver0 | DLen0 | 0x01: {
                         appendTxt(ref rtBox, "Product", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Query", colorData);
-                        } else {
-                            string prodTxt = Encoding.UTF8.GetString(data, 6, dataLen);
-                            appendTxt(ref rtBox, " " + prodTxt, colorData);
-                        }
+                        appendTxt(ref rtBox, " Query", colorSubCmd);
                     }
                     break;
 
-                case Ver0 | 0x02: // Report the network status of the device
+                case Ver0 | DLenX | 0x01: {
+                        appendTxt(ref rtBox, "Product", colorCmd);
+                        string prodTxt = Encoding.UTF8.GetString(data, 6, dataLen);
+                        appendTxt(ref rtBox, " " + prodTxt, colorData);
+                    }
+                    break;
+
+                case Ver0 | DLen0 | 0x02: // ACK Report the network status of the device
                     {
                         appendTxt(ref rtBox, "Report Network Status", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        } else if (dataLen == 1) {
-                            int netState = data[6];
-                            try {
-                                string netTxt = NetworkStates[netState];
-                                appendTxt(ref rtBox, " " + netTxt, colorData);
-                            } catch {
-                                appendTxt(ref rtBox, " Wrong NetworkState=" + netState, colorErr);
-                                bErr = true;
-                            }
-                        } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
-                        }
+                        appendTxt(ref rtBox, " ACK", colorACK);
                     }
                     break;
 
-                case Ver0 | 0x03: // Reset Wi-Fi
+                case Ver0 | DLen1 | 0x02: // Report the network status of the device
+                    {
+                        appendTxt(ref rtBox, "Report Network Status", colorCmd);
+                        int netState = data[6];
+                        decodeDictParam(ref rtBox, ref NetworkStates, colorInfo, netState, true);
+                    }
+                    break;
+
+                case Ver0 | DLen0 | 0x03: // Reset Wi-Fi
                     {
                         appendTxt(ref rtBox, "Reset Wi-Fi", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
-                            bErr = true;
-                        }
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
                     }
                     break;
 
-                case Ver0 | 0x04: // Reset Wi-Fi and select configuration mode
+                case Ver0 | DLen0 | 0x04: // ACK Reset Wi-Fi and select configuration mode
                     {
                         appendTxt(ref rtBox, "Wi-Fi State", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        } else if (dataLen == 1) {
-                            int netCfg = data[6];
-                            if (netCfg == 0) {
-                                appendTxt(ref rtBox, " Enter smartconifg configuration mode", colorInfo);
-                            } else if (netCfg == 1) {
-                                appendTxt(ref rtBox, " Enter AP configuration mode", colorInfo);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
-                                bErr = true;
-                            }
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver0 | DLen1 | 0x04: // Reset Wi-Fi and select configuration mode
+                    {
+                        appendTxt(ref rtBox, "Wi-Fi State", colorCmd);
+                        int netCfg = data[6];
+                        if (netCfg == 0) {
+                            appendTxt(ref rtBox, " Enter smartconifg configuration mode", colorInfo);
+                        } else if (netCfg == 1) {
+                            appendTxt(ref rtBox, " Enter AP configuration mode", colorInfo);
                         } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
                             bErr = true;
                         }
                     }
                     break;
 
-                case Ver0 | 0x05: // Status Data
+                case Ver0 | DLen0 | 0x05: // ACK Status Data
                     {
                         appendTxt(ref rtBox, "Status Data", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        } else if (dataLen == 1) {
-                            int netCfg = data[6];
-                            if (netCfg == 0) {
-                                appendTxt(ref rtBox, " enter smartconifg configuration mode", colorInfo);
-                            } else if (netCfg == 1) {
-                                appendTxt(ref rtBox, " enter AP configuration mode", colorInfo);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
-                                bErr = true;
-                            }
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver0 | DLen1 | 0x05: // Report Status Data
+                    {
+                        appendTxt(ref rtBox, "Status Data", colorCmd);
+                        int netCfg = data[6];
+                        if (netCfg == 0) {
+                            appendTxt(ref rtBox, " enter smartconifg configuration mode", colorInfo);
+                        } else if (netCfg == 1) {
+                            appendTxt(ref rtBox, " enter AP configuration mode", colorInfo);
                         } else {
-                            int offset = 6; // start index to read DP units
-                            // decode all DP units
-                            while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
-                            } // while
-                            if (offset != (num - 1)) { // all eaten? => no
-                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                                bErr = true;
-                            }
+                            appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
+                            bErr = true;
                         }
                     }
                     break;
 
-                case Ver0 | 0x06: // Obtain Local Time 
+                case Ver0 | DLenX | 0x05: // Response Status Data
+                    {
+                        appendTxt(ref rtBox, "Status Data", colorCmd);
+                        int offset = 6; // start index to read DP units
+                        // decode all DP units
+                        while (bErr == false && offset < (num - 1)) {
+                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | DLen0 | 0x06: // Cmd Obtain Local Time 
                     {
                         appendTxt(ref rtBox, "Obtain Local Time", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                        } else if (dataLen == 8) {
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                    }
+                    break;
+
+                case Ver0 | DLenX | 0x06: // Response Obtain Local Time 
+                    {
+                        appendTxt(ref rtBox, "Obtain Local Time", colorCmd);
+                        if (dataLen == 8) {
                             int obtainFlag = data[6];
                             if (obtainFlag == 0) {
                                 appendTxt(ref rtBox, " failed", colorInfo);
@@ -222,58 +218,64 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | 0x07: // Wi-Fi functional test
-                case Ver3 | 0x0e: // Wi-Fi functional test cmd
+                case Ver0 | DLen0 | 0x07: // Wi-Fi functional test
                     {
                         appendTxt(ref rtBox, "Wi-Fi Func Test", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                        } else if (dataLen == 2) {
-                            int obtainFlag = data[6];
-                            if (obtainFlag == 0) {
-                                appendTxt(ref rtBox, " failed", colorInfo);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                    }
+                    break;
 
-                                int err = data[7];
-                                appendTxt(ref rtBox, " error=", colorErr);
-                                appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : "no authorization key", colorData);
-                            } else if (obtainFlag == 1) {
-                                appendTxt(ref rtBox, " Success", colorACK);
+                case Ver0 | DLen2 | 0x07: // Reponse Wi-Fi functional test
+                    {
+                        appendTxt(ref rtBox, "Wi-Fi Func Test", colorCmd);
+                        int obtainFlag = data[6];
+                        decodeResponse(ref rtBox, obtainFlag, false, true);
+                        if (obtainFlag == 0) {
+                            int err = data[7];
+                            appendTxt(ref rtBox, " error=", colorErr);
+                            appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : (err == 1) ? "No authorization key" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
+                        } else if (obtainFlag == 1) {
+                            UInt64 signal = data[7];
+                            decodeParam(ref rtBox, "Signal", signal);
+                        }
+                    }
+                    break;
 
-                                int strengh = data[7];
-                                appendTxt(ref rtBox, " Signal=", colorType);
-                                appendTxt(ref rtBox, strengh.ToString(), colorData);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
-                                bErr = true;
-                            }
+                case Ver3 | DLen2 | 0x0e: // Wi-Fi functional test cmd
+                    {
+                        appendTxt(ref rtBox, "Wi-Fi Func Test", colorCmd);
+                        int obtainFlag = data[6];
+                        if (obtainFlag == 0) {
+                            appendTxt(ref rtBox, " failed", colorInfo);
+
+                            int err = data[7];
+                            appendTxt(ref rtBox, " error=", colorErr);
+                            appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : "no authorization key", colorData);
+                        } else if (obtainFlag == 1) {
+                            appendTxt(ref rtBox, " Success", colorACK);
+
+                            int strengh = data[7];
+                            appendTxt(ref rtBox, " Signal=", colorType);
+                            appendTxt(ref rtBox, strengh.ToString(), colorData);
                         } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                            appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
                             bErr = true;
                         }
                     }
                     break;
 
-                case Ver0 | 0x08: // Report Data
+                case Ver0 | DLen1 | 0x08: // Report Data
                     {
                         appendTxt(ref rtBox, "Report Data", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 1) {
-                            int repStatus = data[6];
-                            try {
-                                string statTxt = ReportStates[repStatus];
-                                appendTxt(ref rtBox, " " + statTxt, colorACK);
-                            } catch {
-                                appendTxt(ref rtBox, " Wrong ReportingStatus=" + repStatus, colorErr);
-                                bErr = true;
-                            }
-                        } else if (dataLen >= 7) {
+                        int repStatus = data[6];
+                        decodeDictParam(ref rtBox, ref ReportStates, colorParam, repStatus, true);
+                    }
+                    break;
+
+                case Ver0 | DLenX | 0x08: // Report Data
+                    {
+                        appendTxt(ref rtBox, "Report Data", colorCmd);
+                        if (dataLen >= 7) {
                             int timeFlag = data[6];
                             if (timeFlag == 0) {
                                 appendTxt(ref rtBox, " Local time is invalid", colorInfo);
@@ -307,148 +309,118 @@ namespace SniffUART {
                                 appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
                                 bErr = true;
                             }
-                        } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
-                            bErr = true;
                         }
                     }
                     break;
 
-                case Ver0 | 0x09: // Send Module Command
-                case Ver3 | 0x09: // Send Module Command
+                case Ver0 | DLenX | 0x09: // Send Module Command
                     {
                         appendTxt(ref rtBox, "Send Command", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        } else {
-                            int offset = 6; // start index to read status of DP units
-                            // decode all status of DP units
-                            while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
-                            } // while
-                            if (offset != (num - 1)) { // all eaten? => no
-                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                                bErr = true;
-                            }
-                        }
-                    }
-                    break;
-
-                case Ver0 | 0x0b: // Query the signal strength of the currently connected router
-                        {
-                        appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                        } else if (dataLen == 2) {
-                            int obtainFlag = data[6];
-                            if (obtainFlag == 0) {
-                                appendTxt(ref rtBox, " failed", colorInfo);
-
-                                int err = data[7];
-                                appendTxt(ref rtBox, " error=", colorErr);
-                                appendTxt(ref rtBox, (err == 0) ? "no router connection" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
-                            } else if (obtainFlag == 1) {
-                                appendTxt(ref rtBox, " Success", colorACK);
-
-                                int strengh = data[7];
-                                appendTxt(ref rtBox, " Signal=", colorType);
-                                appendTxt(ref rtBox, strengh.ToString(), colorData);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
-                                bErr = true;
-                            }
-                        } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
+                        int offset = 6; // start index to read status of DP units
+                        // decode all status of DP units
+                        while (bErr == false && offset < (num - 1)) {
+                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
                             bErr = true;
                         }
                     }
                     break;
 
-                case Ver0 | 0x0a: // Wi-Fi firmware upgrade
-                case Ver0 | 0x0c: // MCU firmware upgrading status
+                case Ver3 | DLen0 | 0x09: // ACK Send Module Command
+                    {
+                        appendTxt(ref rtBox, "Send Command", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver0 | DLen0 | 0x0b: // Query the signal strength of the currently connected router
+                        {
+                        appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | 0x0b: // Query the signal strength of the currently connected router
+                        {
+                        appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
+                        int obtainFlag = data[6];
+                        if (obtainFlag == 0) {
+                            appendTxt(ref rtBox, " failed", colorInfo);
+
+                            int err = data[7];
+                            appendTxt(ref rtBox, " error=", colorErr);
+                            appendTxt(ref rtBox, (err == 0) ? "no router connection" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
+                        } else if (obtainFlag == 1) {
+                            appendTxt(ref rtBox, " Success", colorACK);
+
+                            int strengh = data[7];
+                            appendTxt(ref rtBox, " Signal=", colorType);
+                            appendTxt(ref rtBox, strengh.ToString(), colorData);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | DLen0 | 0x0a: // Cmd Wi-Fi firmware upgrade
+                case Ver0 | DLen1 | 0x0a: // Response Wi-Fi firmware upgrade
+                case Ver0 | DLen0 | 0x0c: // Cmd MCU firmware upgrading status
+                case Ver0 | DLen1 | 0x0c: // Response MCU firmware upgrading status
                     {
                         appendTxt(ref rtBox, (cmd == 0x0a) ? "Wi-Fi Firmware Upgrade" : "MCU Upgrading Status", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
                         if (dataLen == 0) {
                             appendTxt(ref rtBox, " Cmd", colorSubCmd);
                         } else if (dataLen == 1) {
                             int fwUpdRet = data[6];
-                            try {
-                                string statTxt = FWUpdateReturns[fwUpdRet];
-                                appendTxt(ref rtBox, " " + statTxt, colorACK);
-                            } catch {
-                                appendTxt(ref rtBox, " Wrong FWUpdateRet=" + fwUpdRet, colorErr);
-                                bErr = true;
-                            }
-                        } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
-                            bErr = true;
+                            decodeDictParam(ref rtBox, ref FWUpdateReturns, colorParam, fwUpdRet, true);
                         }
                     }
                     break;
 
-                case Ver0 | 0x0d: // Number Firmware Bytes
+                case Ver0 | DLen0 | 0x0d: // ACK Number Firmware Bytes
                     {
                         appendTxt(ref rtBox, "Number Firmware Bytes", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        } else if (dataLen == 4) {
-                            int val = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
-                            appendTxt(ref rtBox, "=" + val.ToString(), colorData);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
-                            bErr = true;
-                        }
+                        appendTxt(ref rtBox, " ACK", colorACK);
                     }
                     break;
 
-                case Ver0 | 0x0e: // Packet Transfer
+                case Ver0 | DLen4 | 0x0d: // Number Firmware Bytes
+                    {
+                        appendTxt(ref rtBox, "Number Firmware Bytes", colorCmd);
+                        int val = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
+                        appendTxt(ref rtBox, "=" + val.ToString(), colorData);
+                    }
+                    break;
+
+                case Ver0 | DLen0 | 0x0e: // ACK Packet Transfer
                     {
                         appendTxt(ref rtBox, "Packet Transfer", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        } else if (dataLen >= 4) {
-                            int offset = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
-                            appendTxt(ref rtBox, " Offset=", colorType);
-                            appendTxt(ref rtBox, offset.ToString("X8"), colorData);
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
 
+                case Ver0 | DLen4 | 0x0e: // Packet Transfer
+                case Ver0 | DLenX | 0x0e: // Packet Transfer
+                    {
+                        appendTxt(ref rtBox, "Packet Transfer", colorCmd);
+                        int offset = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
+                        decodeParam(ref rtBox, "Offset", (UInt64)offset, 8);
+
+                        if (dataLen > 4) {
                             // data bytes
-                            appendTxt(ref rtBox, " Data=", colorType);
                             string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
-                            appendTxt(ref rtBox, " " + hex, colorData);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong DataLen=" + dataLen, colorErr);
-                            bErr = true;
+                            decodeParamStr(ref rtBox, "Data", hex);
                         }
                     }
                     break;
 
-                case Ver0 | 0x010: // Obtain DP cache command && its answer (which is tricky to distinguish)
+                case Ver0 | DLen4 | 0x010: // Obtain DP cache command && its answer (which is tricky to distinguish)
+                case Ver0 | DLenX | 0x010: // Obtain DP cache command && its answer (which is tricky to distinguish)
                     {
                         appendTxt(ref rtBox, "Obtain DP Cache", colorCmd);
-                        bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                        if (bErr)
-                            break;
-                        int dataLen = (data[4] << 8) + data[5];
                         if (dataLen > 0) {
                             int dpLen = data[6];
                             if (dpLen + 1 == dataLen && 7 + dpLen == num - 1) { // request
@@ -490,7 +462,7 @@ namespace SniffUART {
                     break;
 
                 default: {
-                        appendTxt(ref rtBox, "Unknown Version+Cmd=0x" + sw.ToString("X4"), colorErr);
+                        appendTxt(ref rtBox, "Unknown DLen+Version+Cmd=0x" + sw.ToString("X6"), colorErr);
                         bErr = true;
                     }
                     break;

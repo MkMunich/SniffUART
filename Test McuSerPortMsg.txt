@@ -1,3 +1,5 @@
+// Test messages for McuSerPortMsg
+
 // Heartbeat
 00
 

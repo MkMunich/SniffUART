@@ -2155,7 +2155,7 @@ namespace SniffUART {
 
 
                 default: {
-                        appendTxt(ref rtBox, "Unknown DLen+Version+Cmd=0x" + sw.ToString("X6"), colorErr);
+                        appendTxt(ref rtBox, "Unknown DLen+Version+Subcmd+Cmd=0x" + sw.ToString("X6"), colorErr);
                         bErr = true;
                     }
                     break;

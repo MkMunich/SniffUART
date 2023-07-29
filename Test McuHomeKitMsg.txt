@@ -1,0 +1,8 @@
+// Test messages for McuHomeKitMsg
+
+// Heartbeat
+00
+
+// 
+55 aa 00 00 00 00 ff
+
