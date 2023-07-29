@@ -67,9 +67,11 @@ There are three views available:
 	(Alt M): display the decoded message (this is the default setting)
 
 
+![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/SniffUART%20dialog.png)
+
 
 Dialog 'Decode Messages':
-![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/SniffUART%20dialog.png)
+![image](https://github.com/MkMunich/SniffUART/blob/master/ScreenShots/Decode%20Messages.png)
 
 This dialog provides a way to drop messages (as hex dump) into SniffUART. Every line must be one singel Tuya message in hex bytes.
 A list of Tuya message examples (directly taken from the Tuya specification) are found in 'Test McuSerPortMsg.txt' and 'Test McuLowPowerMsg.txt'.
