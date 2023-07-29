@@ -584,7 +584,7 @@ namespace SniffUART {
 
                 case Ver0 | DLen1 | 0x04: // Reset Wi-Fi and select configuration mode
                 case Ver0 | DLen0 | 0x04: // ACK Reset Wi-Fi
-                case Ver3 | DLen0 | 0x04: // ACK Reset Wi-Fi
+                case Ver3 | DLen0 | 0x04: // Cmd Reset Wi-Fi
                     {
                         appendTxt(ref rtBox, "Reset Wi-Fi", colorCmd);
                         if (dataLen == 0) {
@@ -707,9 +707,8 @@ namespace SniffUART {
                 case Ver0 | DLenX | 0x0b: // Transmit update package
                     {
                         appendTxt(ref rtBox, "Transmit Package", colorCmd);
-                        int offset = (data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9];
-                        appendTxt(ref rtBox, " Offset=0x", colorType);
-                        appendTxt(ref rtBox, offset.ToString("X8"), colorData);
+                        UInt64 offset = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
+                        decodeParam(ref rtBox, "Offset", offset, 8);
 
                         // data bytes
                         string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
