@@ -30,7 +30,7 @@ namespace SniffUART {
             }
 
             _readThread = new Thread(ReadLoop);
-            _readThread.Priority = ThreadPriority.Highest;
+            //_readThread.Priority = ThreadPriority.AboveNormal;
 
             // Allow the user to set the appropriate properties.
             _serialPort.PortName = _frm._uarts[_uartReal].PortName;
@@ -42,7 +42,6 @@ namespace SniffUART {
 
             // Set the read/write timeouts
             _serialPort.ReadTimeout = _frm._uarts[_uartReal].ReadTimeout;
-            _serialPort.ReceivedBytesThreshold = 100;
         }
 
         public void LogOpen() {
@@ -64,7 +63,7 @@ namespace SniffUART {
             _uartPar = (bOnePort) ? 0 : _uartReal; // take port parameter from UART0, if OnePort is true
 
             try {
-                _serialPort.ReceivedBytesThreshold = 2;
+                _serialPort.ReceivedBytesThreshold = 75;
                 _serialPort.ReadBufferSize = buf.Length;
                 _serialPort.Open();
                 _continue = true;
