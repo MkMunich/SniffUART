@@ -430,13 +430,6 @@ namespace SniffUART {
             return bErr;
         }
 
-        private static bool hasSubCmd(int cmd) {
-            if (cmd == 0x33 || cmd == 0x34 || cmd == 0x35 || cmd == 0x36 || cmd == 0x37 || cmd == 0x65 || cmd == 0x72) {
-                return true;
-            }
-            return false;
-        }
-
         // refer to Tuya Serial Port Protocol
         // McuSerPort: https://developer.tuya.com/en/docs/iot/tuya-cloud-universal-serial-port-access-protocol?id=K9hhi0xxtn9cb#protocols
         //             https://developer.tuya.com/en/docs/iot/weather-function-description?id=Ka6dcs2cw4avp
@@ -454,38 +447,7 @@ namespace SniffUART {
             int subCmd = (num >= 7 && hasSubCmd(cmd)) ? data[6] : 0;
             int dataLen = (num > 5) ? (data[4] << 8) + data[5] : 0;
 
-            //-----------------------------------------------------------------------
-            // bit16-17=version, bit12-15=DataLen, bit8-11=subCmd, bit0-7=cmd
-            //-----------------------------------------------------------------------
-            const int Ver0 = 0x000000;
-            //const int Ver1 = 0x010000;
-            //const int Ver2 = 0x020000;
-            const int Ver3 = 0x030000;
-
-            const int DLen0 = 0x00000; // dataLen == 0
-            const int DLen1 = 0x01000; // dataLen == 1
-            const int DLen2 = 0x02000; // dataLen == 2
-            const int DLen3 = 0x03000; // dataLen == 3
-            const int DLen4 = 0x04000; // dataLen == 4
-            const int DLenX = 0x05000; // dataLen > 4
             int dlSw = (dataLen == 0) ? DLen0 : (dataLen == 1) ? DLen1 : (dataLen == 2) ? DLen2 : (dataLen == 3) ? DLen3 : (dataLen == 4) ? DLen4 : DLenX;
-
-            const int SCmd0 = 0x0000; // subCmd == 0x00
-            const int SCmd1 = 0x0100; // subCmd == 0x01
-            const int SCmd2 = 0x0200; // subCmd == 0x02
-            const int SCmd3 = 0x0300; // subCmd == 0x03
-            const int SCmd4 = 0x0400; // subCmd == 0x04
-            const int SCmd5 = 0x0500; // subCmd == 0x05
-            const int SCmd6 = 0x0600; // subCmd == 0x06
-            const int SCmd7 = 0x0700; // subCmd == 0x07
-            const int SCmd8 = 0x0800; // subCmd == 0x08
-            const int SCmd9 = 0x0900; // subCmd == 0x09
-            const int SCmda = 0x0a00; // subCmd == 0x0a
-            const int SCmdb = 0x0b00; // subCmd == 0x0b
-            const int SCmdc = 0x0c00; // subCmd == 0x0c
-            const int SCmdd = 0x0d00; // subCmd == 0x0d
-            const int SCmde = 0x0e00; // subCmd == 0x0e
-            const int SCmdf = 0x0f00; // subCmd == 0x0f
 
             if (num >= 6) {
                 bErr |= checkFrame(dec, ref rtBox, num, ref data);
@@ -497,6 +459,9 @@ namespace SniffUART {
                 }
             }
 
+            //-----------------------------------------------------------------------
+            // bit16-17=version, bit12-15=DataLen, bit8-11=subCmd, bit0-7=cmd
+            //-----------------------------------------------------------------------
             int sw = (ver << 16) + dlSw + (subCmd << 8) + cmd;
             switch (sw) {
                 case Ver0 | DLen0 | 0x00: // Heartbeat
@@ -506,7 +471,7 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen1 | 0x00: // MCU restarting
+                case Ver3 | DLen1 | 0x00: // MCU restarting/running
                     {
                         appendTxt(ref rtBox, "Heartbeat", colorCmd);
                         if (num > 1) {
@@ -532,26 +497,26 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen0 | 0x02: // Query network status of the device
+                case Ver0 | DLen0 | 0x02: // Query MCU working mode
                     {
-                        appendTxt(ref rtBox, "Query Network Status", colorCmd);
+                        appendTxt(ref rtBox, "Query MCU Working Mode", colorCmd);
                     }
                     break;
 
-                case Ver3 | DLen0 | 0x02: // Respose network status of the device
+                case Ver3 | DLen0 | 0x02: // Respose MCU working mode
                     {
-                        appendTxt(ref rtBox, "Network Status", colorCmd);
+                        appendTxt(ref rtBox, "Working Mode", colorCmd);
                         appendTxt(ref rtBox, " MCU uses network module", colorInfo);
                     }
                     break;
 
-                case Ver3 | DLen2 | 0x02: // Response network status of the device
+                case Ver3 | DLen2 | 0x02: // Response MCU Working Mode GPIO pins
                     {
-                        appendTxt(ref rtBox, "Report Network Status", colorCmd);
+                        appendTxt(ref rtBox, "MCU Working Mode GPIO pins", colorCmd);
                         UInt64 pinWiFiStatus = data[6];
-                        decodeParam(ref rtBox, "GPIO pins WiFiStatusLED", pinWiFiStatus);
+                        decodeParam(ref rtBox, " WiFiStatusLED", pinWiFiStatus);
                         UInt64 pinWiFiNetwork = data[7];
-                        decodeParam(ref rtBox, "WiFiNetworkReset", pinWiFiNetwork);
+                        decodeParam(ref rtBox, " WiFiNetworkReset", pinWiFiNetwork);
                     }
                     break;
 
@@ -688,15 +653,15 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen4 | 0x0a: // Start OTA update
+                case Ver0 | DLen4 | 0x0a: // Cmd Start OTA update
                     {
                         appendTxt(ref rtBox, "Start OTA update", colorCmd);
-                        UInt64 val = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
-                        decodeParam(ref rtBox, "DataLen", val);
+                        UInt64 size = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
+                        decodeParam(ref rtBox, "Size", size);
                     }
                     break;
 
-                case Ver3 | DLen1 | 0x0a: // Start OTA update
+                case Ver3 | DLen1 | 0x0a: // Response Start OTA update
                     {
                         appendTxt(ref rtBox, "Start OTA update", colorCmd);
                         int packSize = data[6];
@@ -704,15 +669,18 @@ namespace SniffUART {
                     }
                     break;
 
+                case Ver0 | DLen4 | 0x0b: // Transmit update package (last packet)
                 case Ver0 | DLenX | 0x0b: // Transmit update package
                     {
                         appendTxt(ref rtBox, "Transmit Package", colorCmd);
                         UInt64 offset = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
                         decodeParam(ref rtBox, "Offset", offset, 8);
 
-                        // data bytes
-                        string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
-                        decodeParamStr(ref rtBox, "Data", hex);
+                        if (dataLen > 4) {
+                            // data bytes
+                            string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
+                            decodeParamStr(ref rtBox, "Data", hex);
+                        }
                     }
                     break;
 
@@ -723,9 +691,36 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver0 | DLen2 | 0x0e: // Test Wi-Fi functionality
+                case Ver3 | DLen0 | 0x0c: // Get system time in GMT
                     {
-                        appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
+                        appendTxt(ref rtBox, "Get GMT Time", colorCmd);
+                    }
+                    break;
+
+                case Ver0 | DLenX | 0x0c: // Response Get system time in GMT
+                    {
+                        appendTxt(ref rtBox, "Get GMT Time", colorCmd);
+                        int obtainFlag = data[6];
+                        decodeResponse(ref rtBox, obtainFlag, false, true);
+                        int year = data[7] + 2000;
+                        int month = data[8];
+                        int day = data[9];
+                        int hour = data[10];
+                        int minute = data[11];
+                        int second = data[12];
+                        try {
+                            DateTime date = new DateTime(year, month, day, hour, minute, second);
+                            decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
+                        } catch {
+                            appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | DLen2 | 0x0e: // Response Test Wi-Fi functionality
+                    {
+                        appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
                         int obtainFlag = data[6];
                         decodeResponse(ref rtBox, obtainFlag, false, true);
                         if (obtainFlag == 0) {
@@ -739,15 +734,10 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen0 | 0x0c: // Get system time in GMT
+                case Ver3 | DLen0 | 0x0e: // Cmd Test Wi-Fi functionality
                     {
-                        appendTxt(ref rtBox, "Get GMT Time", colorCmd);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x0e: // Response Test Wi-Fi functionality
-                    {
-                        appendTxt(ref rtBox, "Query Signal Strength", colorCmd);
+                        appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
+                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
                     }
                     break;
 
@@ -765,15 +755,15 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen0 | 0x1c: // System time
+                case Ver3 | DLen0 | 0x1c: // Get Local time
                     {
-                        appendTxt(ref rtBox, "Get System Time", colorCmd);
+                        appendTxt(ref rtBox, "Get Local Time", colorCmd);
                     }
                     break;
 
-                case Ver0 | DLenX | 0x1c: // System time
+                case Ver0 | DLenX | 0x1c: // Response Get Local time
                     {
-                        appendTxt(ref rtBox, "System Time", colorCmd);
+                        appendTxt(ref rtBox, "Get Local Time", colorCmd);
                         int obtainFlag = data[6];
                         decodeResponse(ref rtBox, obtainFlag, false, true);
                         int year = data[7] + 2000;
@@ -968,16 +958,21 @@ namespace SniffUART {
 
                 case Ver0 | DLenX | 0x2d: // Reponse Get module’s MAC address
                     {
-                        appendTxt(ref rtBox, "MAC", colorCmd);
-                        appendTxt(ref rtBox, " Addr=", colorParam);
-                        string hex = BitConverter.ToString(data, 6, dataLen - 1).Replace('-', ':');
-                        decodeParamStr(ref rtBox, "EntityData", hex);
+                        appendTxt(ref rtBox, "Get MAC Addr", colorCmd);
+                        int obtainFlag = data[6];
+                        decodeResponse(ref rtBox, obtainFlag, true, true);
+
+                        if (obtainFlag == 0) {
+                            appendTxt(ref rtBox, " Addr=", colorParam);
+                            string hex = BitConverter.ToString(data, 7, dataLen - 1).Replace('-', ':');
+                            decodeParamStr(ref rtBox, "EntityData", hex);
+                        }
                     }
                     break;
 
                 case Ver3 | DLen0 | 0x2d: // Get module’s MAC address
                     {
-                        appendTxt(ref rtBox, "Get MAC", colorCmd);
+                        appendTxt(ref rtBox, "Get MAC Addr", colorCmd);
                     }
                     break;
 
@@ -1267,7 +1262,7 @@ namespace SniffUART {
                         int respStatus = data[7];
                         decodeResponse(ref rtBox, respStatus, true);
                         if (dataLen > 8) {
-                            string infoTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
+                            string infoTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
                             appendTxt(ref rtBox, " " + infoTxt, colorData);
                         }
                     }
@@ -2079,7 +2074,7 @@ namespace SniffUART {
                         int cmdAlarm = data[7];
                         bErr |= decodeDictParam(ref rtBox, ref SetAlarms, colorParam, cmdAlarm, false);
                         if (dataLen > 8) {
-                            string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
+                            string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
                             appendTxt(ref rtBox, " " + alarmTxt, colorData);
                         }
                         int offset = 9;

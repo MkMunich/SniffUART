@@ -35,22 +35,9 @@ namespace SniffUART {
             // cmd is either the first byte or cmd from Frame message or -1 (means unknown)
             int ver = (num == 1) ? 0 : (num >= 4) ? data[2] : -1;
             int cmd = (num == 1) ? data[0] : (num >= 4) ? data[3] : -1;
+            int subCmd = (num >= 7 && hasSubCmd(cmd)) ? data[6] : 0;
             int dataLen = (num > 5) ? (data[4] << 8) + data[5] : 0;
 
-            //-----------------------------------------------------------------------
-            // bit12-15=DataLen, bit8-11=version, bit0-7=cmd
-            //-----------------------------------------------------------------------
-            const int Ver0 = 0x0000;
-            //const int Ver1 = 0x0100;
-            //const int Ver2 = 0x0200;
-            const int Ver3 = 0x0300;
-
-            const int DLen0 = 0x00000; // dataLen == 0
-            const int DLen1 = 0x01000; // dataLen == 1
-            const int DLen2 = 0x02000; // dataLen == 2
-            const int DLen3 = 0x03000; // dataLen == 3
-            const int DLen4 = 0x04000; // dataLen == 4
-            const int DLenX = 0x05000; // dataLen > 4
             int dlSw = (dataLen == 0) ? DLen0 : (dataLen == 1) ? DLen1 : (dataLen == 2) ? DLen2 : (dataLen == 3) ? DLen3 : (dataLen == 4) ? DLen4 : DLenX;
 
             if (num >= 6) {
@@ -63,7 +50,10 @@ namespace SniffUART {
                 }
             }
 
-            int sw = (ver << 8) + dlSw + cmd;
+            //-----------------------------------------------------------------------
+            // bit16-17=version, bit12-15=DataLen, bit8-11=subCmd, bit0-7=cmd
+            //-----------------------------------------------------------------------
+            int sw = (ver << 16) + dlSw + (subCmd << 8) + cmd;
             switch (sw) {
                 // Heartneat
                 case Ver0 | DLen0 | 0x00:
@@ -241,29 +231,6 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLen2 | 0x0e: // Wi-Fi functional test cmd
-                    {
-                        appendTxt(ref rtBox, "Wi-Fi Func Test", colorCmd);
-                        int obtainFlag = data[6];
-                        if (obtainFlag == 0) {
-                            appendTxt(ref rtBox, " failed", colorInfo);
-
-                            int err = data[7];
-                            appendTxt(ref rtBox, " error=", colorErr);
-                            appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : "no authorization key", colorData);
-                        } else if (obtainFlag == 1) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-
-                            int strengh = data[7];
-                            appendTxt(ref rtBox, " Signal=", colorType);
-                            appendTxt(ref rtBox, strengh.ToString(), colorData);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
                 case Ver0 | DLen1 | 0x08: // Report Data
                     {
                         appendTxt(ref rtBox, "Report Data", colorCmd);
@@ -413,6 +380,29 @@ namespace SniffUART {
                             // data bytes
                             string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
                             decodeParamStr(ref rtBox, "Data", hex);
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLen2 | 0x0e: // Wi-Fi functional test cmd
+                    {
+                        appendTxt(ref rtBox, "Wi-Fi Func Test", colorCmd);
+                        int obtainFlag = data[6];
+                        if (obtainFlag == 0) {
+                            appendTxt(ref rtBox, " failed", colorInfo);
+
+                            int err = data[7];
+                            appendTxt(ref rtBox, " error=", colorErr);
+                            appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : "no authorization key", colorData);
+                        } else if (obtainFlag == 1) {
+                            appendTxt(ref rtBox, " Success", colorACK);
+
+                            int strengh = data[7];
+                            appendTxt(ref rtBox, " Signal=", colorType);
+                            appendTxt(ref rtBox, strengh.ToString(), colorData);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong ObtainFlag=" + obtainFlag, colorErr);
+                            bErr = true;
                         }
                     }
                     break;

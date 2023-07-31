@@ -22,6 +22,43 @@ namespace SniffUART {
             eMcuHomeKit,
         };
 
+
+        //*********************************************************************************************************************************
+        //-----------------------------------------------------------------------
+        // bit16-17=version, bit12-15=DataLen, bit8-11=subCmd, bit0-7=cmd
+        //-----------------------------------------------------------------------
+        public const int Ver0 = 0x000000;
+        //public const int Ver1 = 0x010000;
+        //public const int Ver2 = 0x020000;
+        public const int Ver3 = 0x030000;
+
+        public const int DLen0 = 0x00000; // dataLen == 0
+        public const int DLen1 = 0x01000; // dataLen == 1
+        public const int DLen2 = 0x02000; // dataLen == 2
+        public const int DLen3 = 0x03000; // dataLen == 3
+        public const int DLen4 = 0x04000; // dataLen == 4
+        public const int DLenX = 0x05000; // dataLen > 4
+
+        // sub-command is used to devide a command into several commands
+        public const int SCmd0 = 0x0000; // subCmd == 0x00
+        public const int SCmd1 = 0x0100; // subCmd == 0x01
+        public const int SCmd2 = 0x0200; // subCmd == 0x02
+        public const int SCmd3 = 0x0300; // subCmd == 0x03
+        public const int SCmd4 = 0x0400; // subCmd == 0x04
+        public const int SCmd5 = 0x0500; // subCmd == 0x05
+        public const int SCmd6 = 0x0600; // subCmd == 0x06
+        public const int SCmd7 = 0x0700; // subCmd == 0x07
+        public const int SCmd8 = 0x0800; // subCmd == 0x08
+        public const int SCmd9 = 0x0900; // subCmd == 0x09
+        public const int SCmda = 0x0a00; // subCmd == 0x0a
+        public const int SCmdb = 0x0b00; // subCmd == 0x0b
+        public const int SCmdc = 0x0c00; // subCmd == 0x0c
+        public const int SCmdd = 0x0d00; // subCmd == 0x0d
+        public const int SCmde = 0x0e00; // subCmd == 0x0e
+        public const int SCmdf = 0x0f00; // subCmd == 0x0f
+
+
+        //*********************************************************************************************************************************
         public static Dictionary<int, string> DataTypes = new Dictionary<int, string>
         {
             { -1, "DataType" },
@@ -175,10 +212,10 @@ namespace SniffUART {
         public static bool checkFrame(eDecoder decClass, ref RichTextBox rtBox, int num, ref Byte[] data) {
             bool bErr = false; // true, if error detected
 
-            int dataLen = (data[4] << 8) + data[5];
+            int dataLen = (num >= 5) ? (data[4] << 8) + data[5] : 0;
 
             // check min length; length without data bytes; length with data bytes
-            if (num < 7 || (dataLen == 0 && num != 7) || (dataLen > 0 && num != dataLen + 7)) {
+            if (num < 7 || num != dataLen + 7) {
                 appendTxt(ref rtBox, " Wrong Frame (num=" + num + " dataLen=" + dataLen + ")", colorErr);
                 return true;
             }
@@ -260,6 +297,14 @@ namespace SniffUART {
             offset += 4 + len;
             return bErr;
         }
+
+        public static bool hasSubCmd(int cmd) {
+            if (cmd == 0x33 || cmd == 0x34 || cmd == 0x35 || cmd == 0x36 || cmd == 0x37 || cmd == 0x65 || cmd == 0x72) {
+                return true;
+            }
+            return false;
+        }
+
 
         // Public function to decode a single Tuya message
         // Hints: Assuming, that Tuya devices are only using messages within one of the following decoders:

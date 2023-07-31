@@ -37,6 +37,191 @@ namespace SniffUART {
             { 0x03, "A prompt for HomeKit connection, which is fire-and-forget" },
         };
 
+        // Appendix 1: HomeKit accessory list
+        public static Dictionary<int, string> HomeKitAccessories = new Dictionary<int, string>
+        {
+            { -1, "Homekit Accessory" },
+            { 2, "Bridges" },
+            { 3, "Fans" },
+            { 4, "Garage Door Openers" },
+            { 5, "Lighting" },
+            { 6, "Locks" },
+            { 7, "Outlets" },
+            { 8, "Switches" },
+            { 9, "Thermostats" },
+            { 10, "Sensors" },
+            { 11, "Security Systems" },
+            { 12, "Doors" },
+            { 13, "Windows" },
+            { 14, "Window Coverings" },
+            { 15, "Programmable Switches" },
+            { 16, "Reserved" },
+            { 17, "IP Cameras" },
+            { 18, "Video Doorbells" },
+            { 19, "Air Purifiers" },
+            { 20, "Heaters" },
+            { 21, "Air Conditioners" },
+            { 22, "Humidifiers" },
+            { 23, "Dehumidifiers" },
+            { 28, "Sprinklers" },
+            { 29, "Faucets" },
+            { 30, "Shower Systems" },
+        };
+
+        // Appendix 2: HomeKit service list
+        public static Dictionary<int, string> HomeKitServices = new Dictionary<int, string>
+        {
+            { -1, "Homekit Service" },
+            { 0x3e, "Accessory Information" },
+            { 0xa2, "HAP Protocol Information" },
+            { 0x41, "Garage Door Opener" },
+            { 0x43, "Light Bulb" },
+            { 0x44, "Lock Management" },
+            { 0x45, "Lock Mechanism" },
+            { 0x49, "Switch" },
+            { 0x47, "Outlet" },
+            { 0x4a, "Thermostat" },
+            { 0x8d, "Air Quality Sensor" },
+            { 0x7e, "Security System" },
+            { 0x7f, "Carbon Monoxide Sensor" },
+            { 0x80, "Contact Sensor" },
+            { 0x81, "Door" },
+            { 0x82, "Humidity Sensor" },
+            { 0x83, "Leak Sensor" },
+            { 0x84, "Light Sensor" },
+            { 0x85, "Motion Sensor" },
+            { 0x86, "Occupancy Sensor" },
+            { 0x87, "Smoke Sensor" },
+            { 0x89, "Stateless Programmable Switch" },
+            { 0x8a, "Temperature Sensor" },
+            { 0x8b, "Window" },
+            { 0x8c, "Window Covering" },
+            { 0x96, "Battery Service" },
+            { 0x97, "Carbon Dioxide Sensor" },
+            { 0xb7, "Fan" },
+            { 0xb9, "Stat" },
+            { 0xba, "Filter Maintenance" },
+            { 0xbb, "Air Purifier" },
+            { 0xbc, "Heater Cooler" },
+            { 0xbd, "Humidifier Dehumidifier" },
+            { 0xcc, "Service Label" },
+            { 0xcf, "Irrigation System" },
+            { 0xd0, "Valve" },
+            { 0xd7, "Faucet" },
+        };
+
+        // Appendix 3: HomeKit characteristics
+        public static Dictionary<int, string> HomeKitCharacteristics = new Dictionary<int, string>
+        {
+            { -1, "Homekit Characteristic" },
+            { 0x01, "Administrator Only Access" },
+            { 0x08, "Brightness" },
+            { 0x0d, "Cooling Threshold Temperature" },
+            { 0x0e, "Current Door State" },
+            { 0x0f, "Current Heating/Cooling State" },
+            { 0x10, "Current Relative Humidity" },
+            { 0x11, "Current Temperature" },
+            { 0x52, "Firmware Revision" },
+            { 0x53, "Hardware Revision" },
+            { 0x12, "Heating Threshold Temperature" },
+            { 0x13, "Hue" },
+            { 0x14, "Identify" },
+            { 0x19, "Lock Control Point" },
+            { 0x1d, "Lock Current State" },
+            { 0x1c, "Lock Last Known Action" },
+            { 0x1a, "Lock Management Auto Security Timeout" },
+            { 0x1e, "Lock Target State" },
+            { 0x1f, "Logs" },
+            { 0x20, "Manufacturer" },
+            { 0x21, "Model" },
+            { 0x22, "Motion Detected" },
+            { 0x23, "Name" },
+            { 0x24, "Obstruction Detected" },
+            { 0x25, "On" },
+            { 0x26, "Outlet In Use" },
+            { 0x28, "Rotation Direction" },
+            { 0x29, "Rotation Speed" },
+            { 0x2f, "Saturation" },
+            { 0x30, "Serial Number" },
+            { 0x32, "Target Door State" },
+            { 0x33, "Target Heating Cooling State" },
+            { 0x34, "Target Relative Humidity" },
+            { 0x35, "Target Temperature" },
+            { 0x36, "Temperature Display Units" },
+            { 0x37, "Version" },
+            { 0x64, "Air Particulate Density" },
+            { 0x65, "Air Particulate Size" },
+            { 0x66, "Security System Current State" },
+            { 0x67, "Security System Target State" },
+            { 0x68, "Battery Level" },
+            { 0x69, "Carbon Dioxide Detected" },
+            { 0x6a, "Contact Sensor State" },
+            { 0x6b, "Current Ambient Light Level" },
+            { 0x6c, "Current Horizontal Tilt Angle" },
+            { 0x6d, "Current Position" },
+            { 0x6e, "Current Vertical Tilt Angle" },
+            { 0x6f, "Hold Position" },
+            { 0x70, "Leak Detected" },
+            { 0x71, "Occupancy Detected" },
+            { 0x72, "Position State \t" },
+            { 0x73, "Programmable Switch Event" },
+            { 0x75, "Status Active" },
+            { 0x76, "Smoke Detected" },
+            { 0x77, "Status Fault" },
+            { 0x78, "Status Jammed" },
+            { 0x79, "Status Low Battery" },
+            { 0x7a, "Status Tampered" },
+            { 0x7b, "Target Horizontal Tilt Angle" },
+            { 0x7c, "Target Position" },
+            { 0x7d, "Target Vertical Tilt Angle" },
+            { 0x8e, "Security System Alarm Type" },
+            { 0x8f, "Charging State" },
+            { 0x90, "Carbon Monoxide Level" },
+            { 0x91, "Carbon Monoxide Peak Level" },
+            { 0x92, "Carbon Dioxide Detected" },
+            { 0x93, "Carbon Dioxide Level" },
+            { 0x94, "Carbon Dioxide Peak Level" },
+            { 0x95, "Air Quality" },
+            { 0xa6, "Accessory Flags" },
+            { 0xa7, "Lock Physical Controls" },
+            { 0xa9, "Current Air Purifier State" },
+            { 0xaa, "Current Slat State" },
+            { 0xab, "Filter Life Level" },
+            { 0xac, "Filter Change Indication" },
+            { 0xad, "Reset Filter Indication \t" },
+            { 0xa8, "Target Air Purifier State" },
+            { 0xaf, "Current Fan State" },
+            { 0xb0, "Active" },
+            { 0xb1, "Current Heater Cooler State" },
+            { 0xb2, "Target Heater Cooler State" },
+            { 0xb3, "Current Humidifier Dehumidifier State" },
+            { 0xb4, "Target Humidifier Dehumidifier State" },
+            { 0xb5, "Water Level" },
+            { 0xb6, "Swing Mode" },
+            { 0xbf, "Target Fan State" },
+            { 0xc0, "Slat Type" },
+            { 0xc1, "Current Tilt Angle" },
+            { 0xc2, "Target Tilt Angle" },
+            { 0xc3, "Ozone Density" },
+            { 0xc4, "Nitrogen Dioxide Density" },
+            { 0xc5, "Sulphur Dioxide Density" },
+            { 0xc6, "PM2.5 Density" },
+            { 0xc7, "PM10 Density" },
+            { 0xc8, "VOC Density" },
+            { 0xc9, "Relative Humidity Dehumidifier Threshold" },
+            { 0xca, "Relative Humidity Humidifier Threshold" },
+            { 0xcb, "Service Label Index" },
+            { 0xcd, "Service Label Namespace" },
+            { 0xce, "Color Temperature" },
+            { 0xd1, "Program Mode" },
+            { 0xd2, "In Use" },
+            { 0xd3, "Set Duration" },
+            { 0xd4, "Remaining Duration" },
+            { 0xd5, "Valve Type" },
+            { 0xd6, "Is Configured" },
+            { 0x220, "Product Data" },
+        };
+
 
         //*********************************************************************************************************************************
         // Internal function to decode a single message
@@ -46,22 +231,9 @@ namespace SniffUART {
             // cmd is either the first byte or cmd from Frame message or -1 (means unknown)
             int ver = (num == 1) ? 0 : (num >= 4) ? data[2] : -1;
             int cmd = (num == 1) ? data[0] : (num >= 4) ? data[3] : -1;
+            int subCmd = (num >= 7 && hasSubCmd(cmd)) ? data[6] : 0;
             int dataLen = (num > 5) ? (data[4] << 8) + data[5] : 0;
 
-            //-----------------------------------------------------------------------
-            // bit12-15=DataLen, bit8-11=version, bit0-7=cmd
-            //-----------------------------------------------------------------------
-            const int Ver0 = 0x0000;
-            //const int Ver1 = 0x0100;
-            //const int Ver2 = 0x0200;
-            const int Ver3 = 0x0300;
-
-            const int DLen0 = 0x00000; // dataLen == 0
-            const int DLen1 = 0x01000; // dataLen == 1
-            const int DLen2 = 0x02000; // dataLen == 2
-            const int DLen3 = 0x03000; // dataLen == 3
-            const int DLen4 = 0x04000; // dataLen == 4
-            const int DLenX = 0x05000; // dataLen > 4
             int dlSw = (dataLen == 0) ? DLen0 : (dataLen == 1) ? DLen1 : (dataLen == 2) ? DLen2 : (dataLen == 3) ? DLen3 : (dataLen == 4) ? DLen4 : DLenX;
 
             if (num >= 6) {
@@ -74,64 +246,43 @@ namespace SniffUART {
                 }
             }
 
-            int sw = (ver << 8) + dlSw + cmd;
+            //-----------------------------------------------------------------------
+            // bit16-17=version, bit12-15=DataLen, bit8-11=subCmd, bit0-7=cmd
+            //-----------------------------------------------------------------------
+            int sw = (ver << 16) + dlSw + (subCmd << 8) + cmd;
             switch (sw) {
                 case Ver0 | DLen0 | 0x00: // Heartbeat
                 case Ver0 | DLen1 | 0x00: // Heartbeat
-                    {
-                        appendTxt(ref rtBox, "Heartbeat", colorCmd);
-                        if (num > 1) {
-                            int startState = data[6];
-                            appendTxt(ref rtBox, (startState == 0) ? "MCU restarting" : "MCU running", colorData);
-                        }
-                    }
-                    break;
-
                 case Ver3 | DLen0 | 0x00: // Heartbeat
                 case Ver3 | DLen1 | 0x00: // MCU restarting/running
                     {
-                        appendTxt(ref rtBox, "Heartbeat", colorCmd);
-                        if (num > 1) {
-                            int startState = data[6];
-                            appendTxt(ref rtBox, (startState == 0) ? "MCU restarting" : "MCU running", colorInfo);
-                        }
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver0 | DLen0 | 0x01: // Query product information
-                    {
-                        appendTxt(ref rtBox, "Query Product Information", colorCmd);
-                    }
-                    break;
-
                 case Ver0 | DLenX | 0x01: // Response product information
                     {
-                        appendTxt(ref rtBox, "Product Information", colorCmd);
-                        string prodTxt = Encoding.UTF8.GetString(data, 6, dataLen);
-                        appendTxt(ref rtBox, " " + prodTxt, colorData);
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver0 | DLen0 | 0x02: // Query the MCU and set the working mode of the module
+                case Ver3 | DLen0 | 0x02: // Response Query MCU working mode
                     {
-                        appendTxt(ref rtBox, "Query MCU", colorCmd);
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
-                case Ver3 | DLen0 | 0x02: // Response Query MCU
-                case Ver3 | DLen3 | 0x02: // Response Query MCU
+                case Ver3 | DLen3 | 0x02: // Response Query MCU working mode
                     {
-                        appendTxt(ref rtBox, "Query MCU", colorCmd);
-                        if (dataLen == 0) {
-                            appendTxt(ref rtBox, "The module works with the MCU to process network events", colorInfo);
-                        } else {
-                            UInt64 netTuyaStatus = data[6];
-                            decodeParam(ref rtBox, "GPIO pin Tuya NetworkStatus", netTuyaStatus);
-                            UInt64 netKitStatus = data[6];
-                            decodeParam(ref rtBox, "GPIO pin HomeKit NetworkStatus", netKitStatus);
-                            UInt64 resetNet = data[6];
-                            decodeParam(ref rtBox, "GPIO pin Reset Network", resetNet);
-                        }
+                        appendTxt(ref rtBox, "MCU Working Mode GPIO pins", colorCmd);
+                        UInt64 netTuyaStatus = data[6];
+                        decodeParam(ref rtBox, " Tuya NetworkStatus", netTuyaStatus);
+                        UInt64 netKitStatus = data[6];
+                        decodeParam(ref rtBox, " HomeKit NetworkStatus", netKitStatus);
+                        UInt64 resetNet = data[6];
+                        decodeParam(ref rtBox, " Reset Network", resetNet);
                     }
                     break;
 
@@ -148,55 +299,126 @@ namespace SniffUART {
                 case Ver0 | DLen0 | 0x04: // Reset Wi-Fi connection
                 case Ver3 | DLen0 | 0x04: // Reset Wi-Fi connection
                     {
-                        appendTxt(ref rtBox, "Reset Wi-Fi connection", colorCmd);
-                        if (ver == 0)
-                            appendTxt(ref rtBox, " ACK", colorACK);
-                        else
-                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver0 | DLenX | 0x06: // Send commands
                     {
-                        appendTxt(ref rtBox, "Send Command", colorCmd);
-                        // decode all DP units
-                        int offset = 6; // start index to read DP units
-                        while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                            bErr = true;
-                        }
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver3 | DLenX | 0x07: // Report Status
                     {
-                        appendTxt(ref rtBox, "Report Status", colorCmd);
-                        // decode all DP units
-                        int offset = 6; // start index to read DP units
-                        while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                            bErr = true;
-                        }
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver0 | DLen0 | 0x08: // Query DP Status
                     {
-                        appendTxt(ref rtBox, "Query DP Status", colorCmd);
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver0 | DLen4 | 0x0a: // Start OTA update
+                case Ver3 | DLen1 | 0x0a: // Start OTA update
                     {
-                        appendTxt(ref rtBox, "Start OTA update", colorCmd);
-                        UInt64 packSize = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
-                        decodeParam(ref rtBox, "Size", packSize, 8);
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLen4 | 0x0b: // Transmit update package (last packet)
+                case Ver0 | DLenX | 0x0b: // Transmit update package
+                case Ver3 | DLen0 | 0x0b: // ACK Transmit update package
+                    {
+
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLenX | 0x0c: // Response Get system time in GMT
+                case Ver3 | DLen0 | 0x0c: // Get system time in GMT
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLenX | 0x1c: // Response Local time
+                case Ver3 | DLen0 | 0x1c: // Get Local time
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLen2 | 0x0e: // Response Test Wi-Fi functionality
+                case Ver3 | DLen0 | 0x0e: // Cmd Test Wi-Fi functionality
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLen4 | 0x0f: // Response Get module’s memory
+                case Ver3 | DLen0 | 0x0f: // Get module’s memory
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLen1 | 0x24: // Response Get Wi-Fi signal strength
+                case Ver3 | DLen0 | 0x24: // Get Wi-Fi signal strength
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLen0 | 0x25: // ACK Disable heartbeats
+                case Ver3 | DLen0 | 0x25: // Cmd Disable heartbeats
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLen1 | 0x2b: // Response Get the current Wi-Fi status
+                case Ver3 | DLen0 | 0x2b: // Get the current Wi-Fi status
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLenX | 0x2d: // Reponse Get module’s MAC address
+                case Ver3 | DLen0 | 0x2d: // Get module’s MAC address
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLenX | SCmd7 | 0x34: // Response Get information about Wi-Fi module
+                case Ver3 | DLen2 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                case Ver3 | DLen3 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                case Ver3 | DLen4 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                case Ver3 | DLenX | SCmd7 | 0x34: // Get information about Wi-Fi module
+                    {
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
+                    }
+                    break;
+
+                case Ver0 | DLen1 | SCmd1 | 0x36: // Query HomeKit service configuration
+                    {
+                        appendTxt(ref rtBox, "Query HomeKit service configuration", colorCmd);
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd1 | 0x36: // ACK Query HomeKit service configuration
+                    {
+                        appendTxt(ref rtBox, "Query HomeKit service configuration", colorCmd);
+                        appendTxt(ref rtBox, " ACK", colorACK);
+                    }
+                    break;
+
+                case Ver3 | DLenX | SCmd2 | 0x36: // Response Query HomeKit service configuration
+                    {
+                        appendTxt(ref rtBox, "Query HomeKit service configuration", colorCmd);
                     }
                     break;
 

@@ -18,13 +18,13 @@
 // Product Information {"p":"AIp08kLIftb8x***","v":"1.0.0","m":1,"mt":10,"n":0,"ir":"5.12","low":0}
 55 aa 00 01 00 4c 7b 22 70 22 3a 22 41 49 70 30 38 6b 4c 49 66 74 62 38 78 2a 2a 2a 22 2c 22 76 22 3a 22 31 2e 30 2e 30 22 2c 22 6d 22 3a 31 2c 22 6d 74 22 3a 31 30 2c 22 6e 22 3a 30 2c 22 69 72 22 3a 22 35 2e 31 32 22 2c 22 6c 6f 77 22 3a 30 7d ca
 
-// Query Network Status
+// Query MCU Working Mode
 55 aa 00 02 00 00 01
 
-// Network Status MCU uses network module
+// Working Mode MCU uses network module
 55 aa 03 02 00 00 04
 
-// Report Network Status GPIO pins WiFiStatusLED=12 WiFiNetworkReset=13
+// MCU Working Mode GPIO pins WiFiStatusLED=12 WiFiNetworkReset=13
 55 aa 03 02 00 02 0c 0d 1f
 
 // Features Request
@@ -82,7 +82,7 @@
 // Query DP status
 55 aa 00 08 00 00 07
 
-// Start OTA update DataLen=26624
+// Start OTA update Size=26624
 55 aa 00 0a 00 04 00 00 68 00 75
 
 // Start OTA update 256 bytes
@@ -91,22 +91,28 @@
 // Transmit Package Offset=00112233 Data=01 02 03 04
 55 aa 00 0b 00 08 00 11 22 33 01 02 03 04 82
 
+// Transmit Package Offset=00112233
+55 aa 00 0b 00 04 00 11 22 33 74
+
 // Transmit Package ACK
 55 aa 03 0b 00 00 0d
 
 // Get GMT Time
 55 aa 03 0c 00 00 0e
 
-// Get System Time
+// Get GMT Time sucessful Date=16-04-19 05:06
+55 aa 00 0c 00 07 01 10 04 13 05 06 07 4c
+
+// Get Local Time
 55 aa 03 1c 00 00 1e
 
-// System Time successful Date=16-04-19 05:06 Week=2
+// Get Local Time successful Date=16-04-19 05:06 Week=2
 55 aa 00 1c 00 08 01 10 04 13 05 06 07 02 5f
 
-// Query Signal Strength
+// Test Wi-Fi Cmd
 55 aa 03 0e 00 00 10
 
-// Query Signal Strength failed error=SSID is not found
+// Test Wi-Fi failed error=SSID is not found
 55 aa 00 0e 00 02 00 00 0f
 
 // Get memory
@@ -176,10 +182,10 @@
 // Test Wi-Fi successful
 55 aa 00 2c 00 01 01 2d
 
-// Get MAC
+// Get MAC Addr
 55 aa 03 2d 00 00 2f
 
-// MAC Addr=00:50:8A:06:E3:A2:D9
+// MAC Addr sucessful Addr= EntityData=50:8A:06:E3:A2:D9
 55 aa 00 2d 00 07 00 50 8a 06 e3 a2 d9 71
 
 // IR Status IR code is being sent
