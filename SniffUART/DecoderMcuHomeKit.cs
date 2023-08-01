@@ -37,6 +37,18 @@ namespace SniffUART {
             { 0x03, "A prompt for HomeKit connection, which is fire-and-forget" },
         };
 
+        public static Dictionary<int, string> HomeKitDataTypes = new Dictionary<int, string>
+         {
+            { -1, "DataType" },
+            { 0, "Bool" },
+            { 1, "UInt" },
+            { 2, "Int" },
+            { 3, "UInt64" },
+            { 4, "Float" },
+            { 5, "String" },
+            { 6, "Raw" },
+        };
+
         // Appendix 1: HomeKit accessory list
         public static Dictionary<int, string> HomeKitAccessories = new Dictionary<int, string>
         {
@@ -221,6 +233,98 @@ namespace SniffUART {
             { 0xd6, "Is Configured" },
             { 0x220, "Product Data" },
         };
+
+        // returns true, if an error is detected
+        public static bool decodeHomeKitStatusDataUnits(ref RichTextBox rtBox, eDecoder dec, int num, ref int offset, ref Byte[] data) {
+            bool bErr = false; // true, if error detected
+
+            if (offset + 5 > (num - 1)) { // testing the minimum # bytes of a DP unit part failed
+                appendTxt(ref rtBox, " Wrong DataUnit (num=" + num + " offset=" + offset + ")", colorErr);
+                return true;
+            }
+
+            UInt64 srvNo = (UInt64)data[offset++];
+            decodeParam(ref rtBox, "SrvSerNo", srvNo);
+
+            int caracteristicsLen = data[offset++];
+            string caracteristicHex = Encoding.UTF8.GetString(data, offset, caracteristicsLen);
+            offset += caracteristicsLen;
+            int caracteristicId = Convert.ToInt32(caracteristicHex, 16);
+            decodeDictParam(ref rtBox, ref HomeKitCharacteristics, colorParam, caracteristicId, true);
+
+            int type = data[offset + 1];
+            bErr |= decodeDictParam(ref rtBox, ref HomeKitDataTypes, colorInfo, type, true);
+
+            int len = (data[offset + 2] << 8) + data[offset + 3];
+            if (len == 0 || offset + 5 + len > num) { // testing the effective # bytes of a DP unit part failed
+                appendTxt(ref rtBox, " Wrong DataUnitLength (num=" + num + " len=" + len + ")", colorErr);
+                return true;
+            }
+
+            switch (type) {
+                case 0: { // Bool
+                        int val = data[offset + 4];
+                        if (val == 0) {
+                            appendTxt(ref rtBox, "=False", colorErr);
+                        } else if (val == 1) {
+                            appendTxt(ref rtBox, "=True", colorACK);
+                        } else {
+                            appendTxt(ref rtBox, " Wrong Bool=" + val.ToString(), colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case 1: { // (uint) Value
+                        int val = (data[offset + 4] << 24) + (data[offset + 5] << 16) + (data[offset + 6] << 8) + data[offset + 7];
+                        appendTxt(ref rtBox, "=" + val.ToString(), colorData);
+                    }
+                    break;
+
+                case 2: { // (int) Value
+                        int val = (data[offset + 4] << 8) + data[offset + 5];
+                        appendTxt(ref rtBox, "=" + val.ToString(), colorData);
+                    }
+                    break;
+
+                case 3: { // (uint64) Value
+                        UInt64 val = (UInt64)((data[offset + 4] << 56)) + (UInt64)((data[offset + 5] << 48)) + (UInt64)((data[offset + 6] << 40)) + (UInt64)(data[offset + 7] << 32) +
+                                     (UInt64)((data[offset + 9] << 24)) + (UInt64)((data[offset + 10] << 16)) + (UInt64)((data[offset + 11] << 8)) + (UInt64)(data[offset + 12]);
+                        appendTxt(ref rtBox, "=" + val.ToString(), colorData);
+                    }
+                    break;
+
+                case 4: { // float
+                        int beforeCom = (data[offset + 4] << 8) + data[offset + 5];
+                        int afterCom = (data[offset + 6] << 8) + data[offset + 7];
+                        appendTxt(ref rtBox, "=" + beforeCom.ToString() + '.' + afterCom.ToString(), colorData);
+                    }
+                    break;
+
+                case 5: { // String
+                        string str = Encoding.UTF8.GetString(data, offset + 4, len);
+                        //:-( ascii = Regex.Replace(ascii, @"[^\u0000-\u007F]+", "."); // replace all non printable char by '.'
+                        appendTxt(ref rtBox, "=\"" + str + "\"", colorData);
+                    }
+                    break;
+
+                case 6: { // Raw
+                        string hex = BitConverter.ToString(data, offset + 4, len).Replace('-', ' ');
+                        appendTxt(ref rtBox, "=" + hex, colorData);
+                    }
+                    break;
+
+                default: {
+                        appendTxt(ref rtBox, " Wrong UnitType=" + type.ToString("X2"), colorErr);
+                        bErr = true;
+                    }
+                    break;
+            } // switch
+
+            // adjust offset: len bytes had been processed (min length of DP unit + # data bytes)
+            offset += 4 + len;
+            return bErr;
+        }
 
 
         //*********************************************************************************************************************************
@@ -415,9 +519,29 @@ namespace SniffUART {
                     }
                     break;
 
-                case Ver3 | DLenX | SCmd2 | 0x36: // Response Query HomeKit service configuration
+                case Ver0 | DLen2 | SCmd2 | 0x36: // Response Request HomeKit service configuration
+                case Ver0 | DLen3 | SCmd2 | 0x36: // Response Request HomeKit service configuration
+                case Ver0 | DLen4 | SCmd2 | 0x36: // Response Request HomeKit service configuration
+                case Ver0 | DLenX | SCmd2 | 0x36: // Response Request HomeKit service configuration
                     {
-                        appendTxt(ref rtBox, "Query HomeKit service configuration", colorCmd);
+                        appendTxt(ref rtBox, "Response HomeKit service configuration", colorCmd);
+                        int resultDataProcessing = data[7];
+                        decodeResponse(ref rtBox, resultDataProcessing, true, true);
+                        if (resultDataProcessing == 0) {
+                            // decode all service responses
+                            int offset = 8; // start index to read DP units
+                            while (bErr == false && offset < (num - 1)) {
+                                decodeParam(ref rtBox, "SrvSerNo", (UInt64)(offset - 7));
+                                int respStatus = data[offset++];
+                                decodeResponse(ref rtBox, respStatus, true, true);
+                            } // while
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLenX | SCmd2 | 0x36: // Request HomeKit service configuration
+                    {
+                        appendTxt(ref rtBox, "Request HomeKit service configuration", colorCmd);
                         UInt64 len = (UInt64)((data[7] << 8) + data[8]);
                         decodeParam(ref rtBox, "Len", len);
 
@@ -434,6 +558,44 @@ namespace SniffUART {
                         } // while
                         if (offset != (num - 1)) { // all eaten? => no
                             appendTxt(ref rtBox, " Wrong HomeKit Srv configuration offset=" + offset, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver0 | DLen1 | SCmd3 | 0x36: // Send HomeKit commands
+                case Ver0 | DLen2 | SCmd3 | 0x36:
+                case Ver0 | DLen3 | SCmd3 | 0x36:
+                case Ver0 | DLen4 | SCmd3 | 0x36:
+                case Ver0 | DLenX | SCmd3 | 0x36:
+                    {
+                        appendTxt(ref rtBox, "Send HomeKit Cmd", colorCmd);
+                        // decode all HomeKit Data units
+                        int offset = 7; // start index to read HomeKit data units
+                        while (bErr == false && offset < (num - 1)) {
+                            bErr |= decodeHomeKitStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong Data Unit decoding offset=" + offset, colorErr);
+                            bErr = true;
+                        }
+                    }
+                    break;
+
+                case Ver3 | DLen1 | SCmd4 | 0x36: // Report HomeKit status
+                case Ver3 | DLen2 | SCmd4 | 0x36:
+                case Ver3 | DLen3 | SCmd4 | 0x36:
+                case Ver3 | DLen4 | SCmd4 | 0x36:
+                case Ver3 | DLenX | SCmd4 | 0x36:
+                    {
+                        appendTxt(ref rtBox, "Report HomeKit status", colorCmd);
+                        // decode all HomeKit Data units
+                        int offset = 7; // start index to read HomeKit data units
+                        while (bErr == false && offset < (num - 1)) {
+                            bErr |= decodeHomeKitStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong Data Unit decoding offset=" + offset, colorErr);
                             bErr = true;
                         }
                     }

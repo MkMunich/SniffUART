@@ -247,19 +247,13 @@ namespace SniffUART {
                 return true;
             }
 
-            // the data types are different in SerPort and HomeKit
-            int sw = (((byte)dec) << 8) + type;
-            switch (sw) {
-                case (((byte)eDecoder.eMcuSerPort) << 8) + 0:
-                case (((byte)eDecoder.eMcuHomeKit) << 8) + 6:
-                    { // Raw
+            switch (type) {
+                case 0: { // Raw
                         string hex = BitConverter.ToString(data, offset + 4, len).Replace('-', ' ');
                         appendTxt(ref rtBox, "=" + hex, colorData);
                     } break;
 
-                case (((byte)eDecoder.eMcuSerPort) << 8) + 1:
-                case (((byte)eDecoder.eMcuHomeKit) << 8) + 0:
-                    { // Bool
+                case 1: { // Bool
                         int val = data[offset + 4];
                         if (val == 0) {
                             appendTxt(ref rtBox, "=False", colorErr);
@@ -271,52 +265,23 @@ namespace SniffUART {
                         }
                     } break;
 
-                case (((byte)eDecoder.eMcuSerPort) << 8) + 2:
-                case (((byte)eDecoder.eMcuHomeKit) << 8) + 1:
-                    { // (uint) Value
+                case 2: { // (uint) Value
                         int val = (data[offset + 4] << 24) + (data[offset + 5] << 16) + (data[offset + 6] << 8) + data[offset + 7];
                         appendTxt(ref rtBox, "=" + val.ToString(), colorData);
                     } break;
 
-                case (((byte)eDecoder.eMcuHomeKit) << 8) + 2:
-                    { // (int) Value
-                        int val = (data[offset + 4] << 8) + data[offset + 5];
-                        appendTxt(ref rtBox, "=" + val.ToString(), colorData);
-                    }
-                    break;
-
-                case (((byte)eDecoder.eMcuHomeKit) << 8) + 3:
-                    { // (uint64) Value
-                        UInt64 val = (UInt64)((data[offset + 4] << 56)) + (UInt64)((data[offset + 5] << 48)) + (UInt64)((data[offset + 6] << 40)) + (UInt64)(data[offset + 7] << 32) +
-                                     (UInt64)((data[offset + 9] << 24)) + (UInt64)((data[offset + 10] << 16)) + (UInt64)((data[offset + 11] << 8)) + (UInt64)(data[offset + 12]);
-                        appendTxt(ref rtBox, "=" + val.ToString(), colorData);
-                    }
-                    break;
-
-                case (((byte)eDecoder.eMcuHomeKit) << 8) + 4:
-                    { // float
-                        int beforeCom = (data[offset + 4] << 8) + data[offset + 5];
-                        int afterCom = (data[offset + 6] << 8) + data[offset + 7];
-                        appendTxt(ref rtBox, "=" + beforeCom.ToString() + '.' + afterCom.ToString(), colorData);
-                    }
-                    break;
-
-                case (((byte)eDecoder.eMcuSerPort) << 8) + 3:
-                case (((byte)eDecoder.eMcuHomeKit) << 8) + 5:
-                    { // String
-                        string ascii = Encoding.UTF8.GetString(data, offset + 4, len);
+                case 3: { // String
+                        string str = Encoding.UTF8.GetString(data, offset + 4, len);
                         //:-( ascii = Regex.Replace(ascii, @"[^\u0000-\u007F]+", "."); // replace all non printable char by '.'
-                        appendTxt(ref rtBox, "=\"" + ascii + "\"", colorData);
+                        appendTxt(ref rtBox, "=\"" + str + "\"", colorData);
                     } break;
 
-                case (((byte)eDecoder.eMcuSerPort) << 8) + 4:
-                    { // Enum
+                case 4: { // Enum
                         int val = data[offset + 4];
                         appendTxt(ref rtBox, "=" + val.ToString(), colorData);
                     } break;
 
-                case (((byte)eDecoder.eMcuSerPort) << 8) + 5:
-                    { // Bitmap
+                case 5: { // Bitmap
                         if (len == 1) {
                             int val = data[offset + 4];
                             appendTxt(ref rtBox, "=" + val.ToString("X2"), colorData);
@@ -333,7 +298,7 @@ namespace SniffUART {
                     } break;
 
                 default: {
-                        appendTxt(ref rtBox, " Wrong UnitType=" + sw.ToString("X4"), colorErr);
+                        appendTxt(ref rtBox, " Wrong UnitType=" + type.ToString("X2"), colorErr);
                         bErr = true;
                     }
                     break;

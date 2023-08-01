@@ -116,8 +116,21 @@
 
 // Wi-Fi Infos Success {"cc":xx,"sn":"serNo"}
 55 aa 00 34 00 18 07 00 7B 22 63 63 22 3A 78 78 2C 22 73 6E 22 3A 22 73 65 72 4E 6F 22 7D 54
+// sef-made example
 
-// Query HomeKit service configuration Len=2 SrvSerNo=1 Service=Thermostat SrvSerNo=2 Service=Heater Cooler
+// Request HomeKit service configuration Len=2 SrvSerNo=1 Service=Thermostat SrvSerNo=2 Service=Heater Cooler
 55 aa 03 36 00 0b 02 00 02 01 02 34 61 02 02 62 63 a8
+// sef-made example
+
+// Response HomeKit service configuration sucessful SrvSerNo=^1 failed SrvSerNo=2 sucessful
+55 aa 00 36 00 04 02 00 01 00 3c
+// sef-made example
+
+// Send HomeKit Cmd SrvSerNo=1 Homekit Characteristic=Cooling Threshold Temperature Int=258
+55 aa 00 36 00 0a 03 01 01 64 01 02 00 02 01 02 b0
+// sef-made example
+
+// Report HomeKit status SrvSerNo=1 Homekit Characteristic=Cooling Threshold Temperature Int=258
+55 aa 03 36 00 0a 04 01 01 64 01 02 00 02 01 02 b4
 // sef-made example
 
