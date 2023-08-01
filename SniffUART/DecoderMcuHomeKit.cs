@@ -71,7 +71,7 @@ namespace SniffUART {
         // Appendix 2: HomeKit service list
         public static Dictionary<int, string> HomeKitServices = new Dictionary<int, string>
         {
-            { -1, "Homekit Service" },
+            { -1, "Service" },
             { 0x3e, "Accessory Information" },
             { 0xa2, "HAP Protocol Information" },
             { 0x41, "Garage Door Opener" },
@@ -405,20 +405,37 @@ namespace SniffUART {
 
                 case Ver0 | DLen1 | SCmd1 | 0x36: // Query HomeKit service configuration
                     {
-                        appendTxt(ref rtBox, "Query HomeKit service configuration", colorCmd);
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver3 | DLen1 | SCmd1 | 0x36: // ACK Query HomeKit service configuration
                     {
-                        appendTxt(ref rtBox, "Query HomeKit service configuration", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
+                        bErr |= DecoderMcuSerPort.decodingMsg(eDecoder.eMcuHomeKit, ref rtBox, num, ref data);
                     }
                     break;
 
                 case Ver3 | DLenX | SCmd2 | 0x36: // Response Query HomeKit service configuration
                     {
                         appendTxt(ref rtBox, "Query HomeKit service configuration", colorCmd);
+                        UInt64 len = (UInt64)((data[7] << 8) + data[8]);
+                        decodeParam(ref rtBox, "Len", len);
+
+                        // decode all services
+                        int offset = 9; // start index to read DP units
+                        while (bErr == false && offset < (num - 1)) {
+                            UInt64 srvNo = (UInt64)data[offset++];
+                            decodeParam(ref rtBox, "SrvSerNo", srvNo);
+                            int srvLen = data[offset++];
+                            string ascii = Encoding.UTF8.GetString(data, offset, srvLen);
+                            offset += srvLen;
+                            int srvId = Convert.ToInt32(ascii, 16);
+                            decodeDictParam(ref rtBox, ref HomeKitServices, colorParam, srvId, true);
+                        } // while
+                        if (offset != (num - 1)) { // all eaten? => no
+                            appendTxt(ref rtBox, " Wrong HomeKit Srv configuration offset=" + offset, colorErr);
+                            bErr = true;
+                        }
                     }
                     break;
 

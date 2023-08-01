@@ -155,7 +155,7 @@ namespace SniffUART {
                         int offset = 6; // start index to read DP units
                         // decode all DP units
                         while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                            bErr |= decodeStatusDataUnits(ref rtBox, eDecoder.eMcuSerPort, num, ref offset, ref data);
                         } // while
                         if (offset != (num - 1)) { // all eaten? => no
                             appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
@@ -270,7 +270,7 @@ namespace SniffUART {
                             int offset = 13; // start index to read status of DP units
                             // decode all status of DP units
                             while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                                bErr |= decodeStatusDataUnits(ref rtBox, eDecoder.eMcuSerPort, num, ref offset, ref data);
                             } // while
                             if (offset != (num - 1)) { // all eaten? => no
                                 appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
@@ -286,7 +286,7 @@ namespace SniffUART {
                         int offset = 6; // start index to read status of DP units
                         // decode all status of DP units
                         while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                            bErr |= decodeStatusDataUnits(ref rtBox, eDecoder.eMcuSerPort, num, ref offset, ref data);
                         } // while
                         if (offset != (num - 1)) { // all eaten? => no
                             appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
@@ -437,7 +437,7 @@ namespace SniffUART {
 
                                 // decode all status of DP units
                                 while (bErr == false && offset < (num - 1)) {
-                                    bErr |= decodeStatusDataUnits(ref rtBox, dec, ver, num, ref offset, ref data);
+                                    bErr |= decodeStatusDataUnits(ref rtBox, eDecoder.eMcuSerPort, num, ref offset, ref data);
                                 } // while
                                 if (offset != (num - 1)) { // all eaten? => no
                                     appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
