@@ -16,6 +16,9 @@ namespace SniffUART {
     // McuLowPower: https://developer.tuya.com/en/docs/iot/tuyacloudlowpoweruniversalserialaccessprotocol?id=K95afs9h4tjjh
     // McuHomeKit: https://developer.tuya.com/en/docs/iot/wifi-module-mcu-development-overview-for-homekit?id=Kaa8fvusmgapc
     internal static class DecodeMsg {
+        // separation delimiters
+        public static char[] separators = { '"', ',', '.', ';', '(', ')', '{', '}', '[', ']' };
+
         public enum eDecoder {
             eMcuSerPort = 0,
             eMcuLowPower,

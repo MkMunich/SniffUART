@@ -17,7 +17,7 @@ namespace SniffUART {
         public DateTime _dateStart;
         private bool _continue = false;
         private SerialPort _serialPort = new SerialPort();
-        private byte[] buf = new byte[256]; // receive buffer
+        private byte[] buf = new byte[257]; // receive buffer
 
         // c'tor
         public PortHandler(FormMain frm, int uart) {
@@ -63,7 +63,7 @@ namespace SniffUART {
             _uartPar = (bOnePort) ? 0 : _uartReal; // take port parameter from UART0, if OnePort is true
 
             try {
-                _serialPort.ReceivedBytesThreshold = 75;
+                _serialPort.ReceivedBytesThreshold = 256;
                 _serialPort.ReadBufferSize = buf.Length;
                 _serialPort.Open();
                 _continue = true;

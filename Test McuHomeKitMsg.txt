@@ -118,8 +118,16 @@
 55 aa 00 34 00 18 07 00 7B 22 63 63 22 3A 78 78 2C 22 73 6E 22 3A 22 73 65 72 4E 6F 22 7D 54
 // sef-made example
 
-// Request HomeKit service configuration Len=2 SrvSerNo=1 Service=Thermostat SrvSerNo=2 Service=Heater Cooler
-55 aa 03 36 00 0b 02 00 02 01 02 34 61 02 02 62 63 a8
+// Query HomeKit service configuration
+55 aa 00 36 00 01 01 37
+// sef-made example
+
+// HomeKit service configuration ACK
+55 aa 03 36 00 01 01 3a
+// sef-made example
+
+// Request HomeKit service configuration StartSrvSerNo=2 SrvSerNo=2 Service=Thermostat SrvSerNo=3 Service=Heater Cooler
+55 aa 03 36 00 0a 02 02 02 02 34 61 03 02 62 63 a9
 // sef-made example
 
 // Response HomeKit service configuration sucessful SrvSerNo=^1 failed SrvSerNo=2 sucessful
@@ -132,5 +140,28 @@
 
 // Report HomeKit status SrvSerNo=1 Homekit Characteristic=Cooling Threshold Temperature Int=258
 55 aa 03 36 00 0a 04 01 01 64 01 02 00 02 01 02 b4
+// sef-made example
+
+// Optional Homekit Characteristic Configuration SrvSerNo=1 Characteristic=Cooling Threshold Temperature Characteristic=Hue Characteristic=Security System Current State
+55 aa 03 36 00 0a 05 01 01 64 02 31 33 02 36 36 81
+// sef-made example
+
+// Response Optional HomeKit Characteristic Configuration sucessful No=1 failed No=2 sucessful
+55 aa 00 36 00 04 05 00 01 00 3f
+// sef-made example
+
+// Valid Values of Characteristic {"service_serial":0,"char_str":"A9","val_type":0,"valid_val":[0,2]}
+55 AA 03 36 00 44 06 7B 22 73 65 72 76 69 63 65 5F 73 65 72 69 61 6C 22 3A 30 2C 22 63 68 61 72 5F 73 74 72 22 3A 22 41 39 22 2C 22 76 61 6C 5F 74 79 70 65 22 3A 30 2C 22 76 61 6C 69 64 5F 76 61 6C 22 3A 5B 30 2C 32 5D 7D 96
+
+// Valid Values of Characteristic Response=Failed to process data
+55 AA 00 36 00 02 06 07 44
+// sef-made example
+
+// Notify new feature configuration {"mcu_ota":1} OTA=MCU does not have a scratchpad
+55 AA 03 37 00 0E 00 7B 22 6D 63 75 5F 6F 74 61 22 3A 31 7D D6
+// sef-made example
+
+// Notify new feature configuration Response=invalid content
+55 aa 00 37 00 02 00 01 39
 // sef-made example
 

@@ -21,9 +21,6 @@ using System.Text.RegularExpressions;
 
 namespace SniffUART {
     internal static class DecoderMcuSerPort {
-        // separation delimiters
-        public static char[] separators = { '"', ',', '.', ';', '(', ')', '{', '}', '[', ']' };
-
         // dictionaries defining pairs of <values, string> to output meaningful descriptionof values
         public static Dictionary<int, string> NetworkStates = new Dictionary<int, string>
         {
@@ -441,156 +438,180 @@ namespace SniffUART {
         public static bool decodingMsg(eDecoder dec, ref RichTextBox rtBox, int num, ref byte[] data) {
             bool bErr = false; // true, if error detected
 
-            // cmd is either the first byte or cmd from Frame message or -1 (means unknown)
-            int ver = (num == 1) ? 0 : (num >= 4) ? data[2] : -1;
-            int cmd = (num == 1) ? data[0] : (num >= 4) ? data[3] : -1;
-            int subCmd = (num >= 7 && hasSubCmd(cmd)) ? data[6] : 0;
-            int dataLen = (num > 5) ? (data[4] << 8) + data[5] : 0;
+            try {
+                // cmd is either the first byte or cmd from Frame message or -1 (means unknown)
+                int ver = (num == 1) ? 0 : (num >= 4) ? data[2] : -1;
+                int cmd = (num == 1) ? data[0] : (num >= 4) ? data[3] : -1;
+                int subCmd = (num >= 7 && hasSubCmd(cmd)) ? data[6] : 0;
+                int dataLen = (num > 5) ? (data[4] << 8) + data[5] : 0;
 
-            int dlSw = (dataLen == 0) ? DLen0 : (dataLen == 1) ? DLen1 : (dataLen == 2) ? DLen2 : (dataLen == 3) ? DLen3 : (dataLen == 4) ? DLen4 : DLenX;
+                int dlSw = (dataLen == 0) ? DLen0 : (dataLen == 1) ? DLen1 : (dataLen == 2) ? DLen2 : (dataLen == 3) ? DLen3 : (dataLen == 4) ? DLen4 : DLenX;
 
-            if (num >= 6) {
-                bErr |= checkFrame(dec, ref rtBox, num, ref data);
-                if (bErr) { // if an error had been detected, then print all msg bytes in hex
-                    string hex = (num > 0) ? BitConverter.ToString(data, 0, num).Replace('-', ' ') : "-";
-                    appendTxt(ref rtBox, " No Frame Msg=", colorData);
-                    appendTxt(ref rtBox, hex, colorErr);
-                    return bErr;
+                if (num >= 6) {
+                    bErr |= checkFrame(dec, ref rtBox, num, ref data);
+                    if (bErr) { // if an error had been detected, then print all msg bytes in hex
+                        string hex = (num > 0) ? BitConverter.ToString(data, 0, num).Replace('-', ' ') : "-";
+                        appendTxt(ref rtBox, " No Frame Msg=", colorData);
+                        appendTxt(ref rtBox, hex, colorErr);
+                        return bErr;
+                    }
                 }
-            }
 
-            //-----------------------------------------------------------------------
-            // bit16-17=version, bit12-15=DataLen, bit8-11=subCmd, bit0-7=cmd
-            //-----------------------------------------------------------------------
-            int sw = (ver << 16) + dlSw + (subCmd << 8) + cmd;
-            switch (sw) {
-                case Ver0 | DLen0 | 0x00: // Heartbeat
-                case Ver3 | DLen0 | 0x00: // Heartbeat frame
-                    {
-                        appendTxt(ref rtBox, "Heartbeat", colorCmd);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | 0x00: // MCU restarting/running
-                    {
-                        appendTxt(ref rtBox, "Heartbeat", colorCmd);
-                        if (num > 1) {
-                            int startState = data[6];
-                            appendTxt(ref rtBox, (startState == 0) ? "MCU restarting" : "MCU running", colorInfo);
+                //-----------------------------------------------------------------------
+                // bit16-17=version, bit12-15=DataLen, bit8-11=subCmd, bit0-7=cmd
+                //-----------------------------------------------------------------------
+                int sw = (ver << 16) + dlSw + (subCmd << 8) + cmd;
+                switch (sw) {
+                    case Ver0 | DLen0 | 0x00: // Heartbeat
+                    case Ver3 | DLen0 | 0x00: // Heartbeat frame
+                        {
+                            appendTxt(ref rtBox, "Heartbeat", colorCmd);
                         }
-                    }
-                    break;
+                        break;
 
-                // Query product information
-                case Ver0 | DLen0 | 0x01: // Query product information
-                    {
-                        appendTxt(ref rtBox, "Query Product Information", colorCmd);
-                    }
-                    break;
-
-                // Response product information
-                case Ver0 | DLenX | 0x01: // Response product information
-                    {
-                        appendTxt(ref rtBox, "Product Information", colorCmd);
-                        string prodTxt = Encoding.UTF8.GetString(data, 6, dataLen);
-                        appendTxt(ref rtBox, " " + prodTxt, colorData);
-                    }
-                    break;
-
-                case Ver0 | DLen0 | 0x02: // Query MCU working mode
-                    {
-                        appendTxt(ref rtBox, "Query MCU Working Mode", colorCmd);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x02: // Respose MCU working mode
-                    {
-                        appendTxt(ref rtBox, "Working Mode", colorCmd);
-                        appendTxt(ref rtBox, " MCU uses network module", colorInfo);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | 0x02: // Response MCU Working Mode GPIO pins
-                    {
-                        appendTxt(ref rtBox, "MCU Working Mode GPIO pins", colorCmd);
-                        UInt64 pinWiFiStatus = data[6];
-                        decodeParam(ref rtBox, " WiFiStatusLED", pinWiFiStatus);
-                        UInt64 pinWiFiNetwork = data[7];
-                        decodeParam(ref rtBox, " WiFiNetworkReset", pinWiFiNetwork);
-                    }
-                    break;
-
-                case Ver3 | DLen3 | 0x02: // Response network status of the device
-                    {
-                        appendTxt(ref rtBox, "Report Network Status", colorCmd);
-                        UInt64 pinWiFiStatus = data[6];
-                        decodeParam(ref rtBox, "GPIO pins WiFiStatusLED", pinWiFiStatus);
-                        UInt64 pinWiFiNetwork = data[7];
-                        decodeParam(ref rtBox, "WiFiNetworkReset", pinWiFiNetwork);
-                        UInt64 pinBluetoothStatus = data[8];
-                        decodeParam(ref rtBox, "BluetoothStatusLED", pinBluetoothStatus);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x03: // Report the network status of the device
-                    {
-                        appendTxt(ref rtBox, "Report Network Status", colorCmd);
-                        int netState = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref NetworkStates, colorData, netState, false);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x03: // ACK Report the network status of the device
-                    {
-                        appendTxt(ref rtBox, "Report Network Status", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x04: // Reset Wi-Fi and select configuration mode
-                case Ver0 | DLen0 | 0x04: // ACK Reset Wi-Fi
-                case Ver3 | DLen0 | 0x04: // Cmd Reset Wi-Fi
-                    {
-                        appendTxt(ref rtBox, "Reset Wi-Fi", colorCmd);
-                        if (dataLen == 0) {
-                            if (ver == 0)
-                                appendTxt(ref rtBox, " ACK", colorACK);
-                            else
-                                appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                        } else if (dataLen == 1) {
-                            int netCfg = data[6];
-                            if (netCfg == 0) {
-                                appendTxt(ref rtBox, " enter smartconifg configuration mode", colorInfo);
-                            } else if (netCfg == 1) {
-                                appendTxt(ref rtBox, " enter AP configuration mode", colorInfo);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
-                                bErr = true;
+                    case Ver3 | DLen1 | 0x00: // MCU restarting/running
+                        {
+                            appendTxt(ref rtBox, "Heartbeat", colorCmd);
+                            if (num > 1) {
+                                int startState = data[6];
+                                appendTxt(ref rtBox, (startState == 0) ? "MCU restarting" : "MCU running", colorInfo);
                             }
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver0 | DLen0 | 0x05: // ACK Reset Wi-Fi Pairing Mode
-                case Ver3 | DLen1 | 0x05: // Set Wi-Fi Pairing Mode
-                case Ver3 | DLenX | 0x05: // Set Wi-Fi Pairing Mode
-                    {
-                        appendTxt(ref rtBox, "Set Wi-Fi Pairing", colorCmd);
-                        if (dataLen == 0) {
+                    // Query product information
+                    case Ver0 | DLen0 | 0x01: // Query product information
+                        {
+                            appendTxt(ref rtBox, "Query Product Information", colorCmd);
+                        }
+                        break;
+
+                    // Response product information
+                    case Ver0 | DLenX | 0x01: // Response product information
+                        {
+                            appendTxt(ref rtBox, "Product Information", colorCmd);
+                            string prodTxt = Encoding.UTF8.GetString(data, 6, dataLen);
+                            appendTxt(ref rtBox, " " + prodTxt, colorData);
+                        }
+                        break;
+
+                    case Ver0 | DLen0 | 0x02: // Query MCU working mode
+                        {
+                            appendTxt(ref rtBox, "Query MCU Working Mode", colorCmd);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x02: // Respose MCU working mode
+                        {
+                            appendTxt(ref rtBox, "Working Mode", colorCmd);
+                            appendTxt(ref rtBox, " MCU uses network module", colorInfo);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | 0x02: // Response MCU Working Mode GPIO pins
+                        {
+                            appendTxt(ref rtBox, "MCU Working Mode GPIO pins", colorCmd);
+                            UInt64 pinWiFiStatus = data[6];
+                            decodeParam(ref rtBox, " WiFiStatusLED", pinWiFiStatus);
+                            UInt64 pinWiFiNetwork = data[7];
+                            decodeParam(ref rtBox, " WiFiNetworkReset", pinWiFiNetwork);
+                        }
+                        break;
+
+                    case Ver3 | DLen3 | 0x02: // Response network status of the device
+                        {
+                            appendTxt(ref rtBox, "Report Network Status", colorCmd);
+                            UInt64 pinWiFiStatus = data[6];
+                            decodeParam(ref rtBox, "GPIO pins WiFiStatusLED", pinWiFiStatus);
+                            UInt64 pinWiFiNetwork = data[7];
+                            decodeParam(ref rtBox, "WiFiNetworkReset", pinWiFiNetwork);
+                            UInt64 pinBluetoothStatus = data[8];
+                            decodeParam(ref rtBox, "BluetoothStatusLED", pinBluetoothStatus);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x03: // Report the network status of the device
+                        {
+                            appendTxt(ref rtBox, "Report Network Status", colorCmd);
+                            int netState = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref NetworkStates, colorData, netState, false);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x03: // ACK Report the network status of the device
+                        {
+                            appendTxt(ref rtBox, "Report Network Status", colorCmd);
                             appendTxt(ref rtBox, " ACK", colorACK);
-                        } else if (dataLen == 1) {
-                            int netCfg = data[6];
-                            if (netCfg == 0) {
-                                appendTxt(ref rtBox, " EZ mode", colorInfo);
-                            } else if (netCfg == 1) {
-                                appendTxt(ref rtBox, " AP mode", colorInfo);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
-                                bErr = true;
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x04: // Reset Wi-Fi and select configuration mode
+                    case Ver0 | DLen0 | 0x04: // ACK Reset Wi-Fi
+                    case Ver3 | DLen0 | 0x04: // Cmd Reset Wi-Fi
+                        {
+                            appendTxt(ref rtBox, "Reset Wi-Fi", colorCmd);
+                            if (dataLen == 0) {
+                                if (ver == 0)
+                                    appendTxt(ref rtBox, " ACK", colorACK);
+                                else
+                                    appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                            } else if (dataLen == 1) {
+                                int netCfg = data[6];
+                                if (netCfg == 0) {
+                                    appendTxt(ref rtBox, " enter smartconifg configuration mode", colorInfo);
+                                } else if (netCfg == 1) {
+                                    appendTxt(ref rtBox, " enter AP configuration mode", colorInfo);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
+                                    bErr = true;
+                                }
                             }
-                        } else {
-                            // decode all DP units
-                            int offset = 6; // start index to read DP units
+                        }
+                        break;
+
+                    case Ver0 | DLen0 | 0x05: // ACK Reset Wi-Fi Pairing Mode
+                    case Ver3 | DLen1 | 0x05: // Set Wi-Fi Pairing Mode
+                    case Ver3 | DLenX | 0x05: // Set Wi-Fi Pairing Mode
+                        {
+                            appendTxt(ref rtBox, "Set Wi-Fi Pairing", colorCmd);
+                            if (dataLen == 0) {
+                                appendTxt(ref rtBox, " ACK", colorACK);
+                            } else if (dataLen == 1) {
+                                int netCfg = data[6];
+                                if (netCfg == 0) {
+                                    appendTxt(ref rtBox, " EZ mode", colorInfo);
+                                } else if (netCfg == 1) {
+                                    appendTxt(ref rtBox, " AP mode", colorInfo);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong NetCfg=" + netCfg, colorErr);
+                                    bErr = true;
+                                }
+                            } else {
+                                // decode all DP units
+                                int offset = 6; // start index to read DP units
+                                while (bErr == false && offset < (num - 1)) {
+                                    bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
+                                } // while
+                                if (offset != (num - 1)) { // all eaten? => no
+                                    appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                                    bErr = true;
+                                }
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen0 | 0x06: // Send Module Command
+                        {
+                            appendTxt(ref rtBox, "Send Module Command", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | 0x06: // Send Module Command
+                        {
+                            appendTxt(ref rtBox, "Send Module Command", colorCmd);
+                            int offset = 6; // start index to read status of DP units
+                            // decode all status of DP units
                             while (bErr == false && offset < (num - 1)) {
                                 bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
                             } // while
@@ -599,1561 +620,1539 @@ namespace SniffUART {
                                 bErr = true;
                             }
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver0 | DLen0 | 0x06: // Send Module Command
-                    {
-                        appendTxt(ref rtBox, "Send Module Command", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver0 | DLenX | 0x06: // Send Module Command
-                    {
-                        appendTxt(ref rtBox, "Send Module Command", colorCmd);
-                        int offset = 6; // start index to read status of DP units
-                        // decode all status of DP units
-                        while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                            bErr = true;
+                    case Ver0 | DLen1 | 0x07: // Report Data
+                        {
+                            appendTxt(ref rtBox, "Report Data", colorCmd);
+                            int repStatus = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref ReportStates, colorData, repStatus, false);
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver0 | DLen1 | 0x07: // Report Data
-                    {
-                        appendTxt(ref rtBox, "Report Data", colorCmd);
-                        int repStatus = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref ReportStates, colorData, repStatus, false);
-                    }
-                    break;
-
-                case Ver3 | DLenX | 0x07: // Report Data
-                    {
-                        appendTxt(ref rtBox, "Report Data", colorCmd);
-                        int offset = 6; // start index to read status of DP units
-                        // decode all status of DP units
-                        while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen0 | 0x08: // Query DP status
-                    {
-                        appendTxt(ref rtBox, "Query DP status", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen4 | 0x0a: // Cmd Start OTA update
-                    {
-                        appendTxt(ref rtBox, "Start OTA update", colorCmd);
-                        UInt64 size = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
-                        decodeParam(ref rtBox, "Size", size);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | 0x0a: // Response Start OTA update
-                    {
-                        appendTxt(ref rtBox, "Start OTA update", colorCmd);
-                        int packSize = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref PacketSizes, colorData, packSize, false);
-                    }
-                    break;
-
-                case Ver0 | DLen4 | 0x0b: // Transmit update package (last packet)
-                case Ver0 | DLenX | 0x0b: // Transmit update package
-                    {
-                        appendTxt(ref rtBox, "Transmit Package", colorCmd);
-                        UInt64 offset = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
-                        decodeParam(ref rtBox, "Offset", offset, 8);
-
-                        if (dataLen > 4) {
-                            // data bytes
-                            string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
-                            decodeParamStr(ref rtBox, "Data", hex);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x0b: // ACK Transmit update package
-                    {
-                        appendTxt(ref rtBox, "Transmit Package", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x0c: // Get system time in GMT
-                    {
-                        appendTxt(ref rtBox, "Get GMT Time", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLenX | 0x0c: // Response Get system time in GMT
-                    {
-                        appendTxt(ref rtBox, "Get GMT Time", colorCmd);
-                        int obtainFlag = data[6];
-                        decodeResponse(ref rtBox, obtainFlag, false, true);
-                        int year = data[7] + 2000;
-                        int month = data[8];
-                        int day = data[9];
-                        int hour = data[10];
-                        int minute = data[11];
-                        int second = data[12];
-                        try {
-                            DateTime date = new DateTime(year, month, day, hour, minute, second);
-                            decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
-                        } catch {
-                            appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | 0x0e: // Response Test Wi-Fi functionality
-                    {
-                        appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
-                        int obtainFlag = data[6];
-                        decodeResponse(ref rtBox, obtainFlag, false, true);
-                        if (obtainFlag == 0) {
-                            int err = data[7];
-                            appendTxt(ref rtBox, " error=", colorErr);
-                            appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : (err == 1) ? "No authorization key" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
-                        } else if (obtainFlag == 1) {
-                            UInt64 signal = data[7];
-                            decodeParam(ref rtBox, "Signal", signal);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x0e: // Cmd Test Wi-Fi functionality
-                    {
-                        appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen4 | 0x0f: // Response Get module’s memory
-                    {
-                        appendTxt(ref rtBox, "Memory", colorCmd);
-                        UInt64 val = (UInt64)((data[9] << 24) + (data[8] << 16) + (data[7] << 8) + data[6]);
-                        decodeParam(ref rtBox, "Free", val);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x0f: // Get module’s memory
-                    {
-                        appendTxt(ref rtBox, "Get Memory", colorCmd);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x1c: // Get Local time
-                    {
-                        appendTxt(ref rtBox, "Get Local Time", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLenX | 0x1c: // Response Get Local time
-                    {
-                        appendTxt(ref rtBox, "Get Local Time", colorCmd);
-                        int obtainFlag = data[6];
-                        decodeResponse(ref rtBox, obtainFlag, false, true);
-                        int year = data[7] + 2000;
-                        int month = data[8];
-                        int day = data[9];
-                        int hour = data[10];
-                        int minute = data[11];
-                        int second = data[12];
-                        UInt64 week = data[13];
-                        try {
-                            DateTime date = new DateTime(year, month, day, hour, minute, second);
-                            decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
-                            decodeParam(ref rtBox, "Week", week);
-                        } catch {
-                            appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | 0x20: // ACK Weather Service specification
-                    {
-                        appendTxt(ref rtBox, "Enable weather services", colorCmd);
-                        int obtainFlag = data[6];
-                        decodeResponse(ref rtBox, obtainFlag, false, true);
-                        if (obtainFlag == 0) {
-                            int sucFlag = data[7];
-                            if (sucFlag == 1) {
-                                appendTxt(ref rtBox, " Invalid data format" + sucFlag, colorErr);
-                            } else if (sucFlag == 2) {
-                                appendTxt(ref rtBox, " Exception error" + sucFlag, colorErr);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong SuccessFlag=" + sucFlag, colorErr);
-                            }
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLenX | 0x20: // Weather Service specification
-                    {
-                        appendTxt(ref rtBox, "Enable weather services", colorCmd);
-                        bErr |= decodeWeatherParameter(ref rtBox, ref data, num, false, 6);
-                    }
-                    break;
-
-                case Ver0 | DLenX | 0x21: // Enable weather services
-                    {
-                        appendTxt(ref rtBox, "Enable weather services", colorCmd);
-                        int sucFlag = data[6];
-                        decodeResponse(ref rtBox, sucFlag, false, true);
-                        bErr |= decodeWeatherParameter(ref rtBox, ref data, num, true, 7);
-                    }
-                    break;
-
-                case Ver0 | DLen0 | 0x21: // ACK Enable weather services
-                    {
-                        appendTxt(ref rtBox, "Enable weather services", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver0 |DLen1 | 0x22: // Report Status (hint: might be that cmd 0x23 is used)
-                    {
-                        appendTxt(ref rtBox, "Report Status", colorCmd);
-                        int respStatus = data[6];
-                        decodeResponse(ref rtBox, respStatus, false, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | 0x22: // Report Status
-                    {
-                        appendTxt(ref rtBox, "Report Status", colorCmd);
-
-                        // decode all status of DP units
-                        int offset = 6; // start index to read status of DP units
-                        while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x23: // Response Report Status
-                    {
-                        appendTxt(ref rtBox, "Report Status", colorCmd);
-                        int respStatus = data[6];
-                        decodeResponse(ref rtBox, respStatus, false);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x24: // Response Get Wi-Fi signal strength
-{
-                        appendTxt(ref rtBox, "Wi-Fi signal strength", colorCmd);
-                        UInt64 signal = data[6];
-                        decodeParam(ref rtBox, "Signal", signal);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x24: // Get Wi-Fi signal strength
-                    {
-                        appendTxt(ref rtBox, "Get Wi-Fi signal strength", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen0 | 0x25: // ACK Disable heartbeats
-                    {
-                        appendTxt(ref rtBox, "Disable heartbeats", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x25: // Cmd Disable heartbeats
-                    {
-                        appendTxt(ref rtBox, "Disable heartbeats", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x28: // Response Map streaming for robot vacuum
-                    {
-                        appendTxt(ref rtBox, "Map data streaming for robot vacuum", colorCmd);
-                        int netDataResp = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref MapDataResponses, colorData, netDataResp, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | 0x28: // Map streaming for robot vacuum
-                    {
-                        appendTxt(ref rtBox, "Map data streaming for robot vacuum", colorCmd);
-                        UInt64 mapId = (UInt64)((data[6] << 8) + data[7]);
-                        decodeParam(ref rtBox, "Id", mapId, 4);
-                        int offset = 8;
-                        while (!bErr && offset < (num - 4)) {
-                            int dataOffset = (data[offset] << 24) + (data[offset + 1] << 16) + (data[offset + 2] << 8) + data[offset + 3];
-                            appendTxt(ref rtBox, " 0x" + dataOffset.ToString("X8"), colorData);
-                            offset += 4;
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong Map data offset=" + offset, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x2a: // Response Pairing via serial port
-                    {
-                        appendTxt(ref rtBox, "Pairing via serial port", colorCmd);
-                        int resPairing = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref ResultsPairing, colorData, resPairing, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | 0x2a: // Pairing via serial port
-                    {
-                        appendTxt(ref rtBox, "Pairing via serial port", colorCmd);
-                        string str = Encoding.UTF8.GetString(data, 6, dataLen);
-                        appendTxt(ref rtBox, str, colorData);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x2b: // Response Get the current network status
-                    {
-                        appendTxt(ref rtBox, "Network Status", colorCmd);
-                        int netState = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref NetworkStates, colorData, netState, true);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x2b: // Get the current network status
-                    {
-                        appendTxt(ref rtBox, "Get Network Status", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x2c: // Test Wi-Fi functionality (connection)
-                    {
-                        appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
-                        int respStatus = data[6];
-                        decodeResponse(ref rtBox, respStatus, false, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | 0x2c: // Response Test Wi-Fi functionality (connection)
-                    {
-                        appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
-                        string str = Encoding.UTF8.GetString(data, 6, dataLen);
-                        appendTxt(ref rtBox, str, colorData);
-                    }
-                    break;
-
-                case Ver0 | DLenX | 0x2d: // Reponse Get module’s MAC address
-                    {
-                        appendTxt(ref rtBox, "Get MAC Addr", colorCmd);
-                        int obtainFlag = data[6];
-                        decodeResponse(ref rtBox, obtainFlag, true, true);
-
-                        if (obtainFlag == 0) {
-                            appendTxt(ref rtBox, " Addr=", colorParam);
-                            string hex = BitConverter.ToString(data, 7, dataLen - 1).Replace('-', ':');
-                            decodeParamStr(ref rtBox, "EntityData", hex);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x2d: // Get module’s MAC address
-                    {
-                        appendTxt(ref rtBox, "Get MAC Addr", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x2e: // Response IR status notification
-                    {
-                        appendTxt(ref rtBox, "IR Status", colorCmd);
-                        int irStatus = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref IRStatus, colorData, irStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x2e: // Cmd IR status notification
-                    {
-                        appendTxt(ref rtBox, "IR Status", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x2f: // Response IR functionality test
-                    {
-                        appendTxt(ref rtBox, "IR Test", colorCmd);
-                        int respStatus = data[6];
-                        decodeResponse(ref rtBox, respStatus, true, true);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x2f: // Cmd IR functionality test
-                    {
-                        appendTxt(ref rtBox, "IR Test", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | 0x30: // Multiple map data streaming
-                    {
-                        appendTxt(ref rtBox, "Map data streaming", colorCmd);
-                        int respStatus = data[6];
-                        decodeResponse(ref rtBox, respStatus, true, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | 0x30: // Response Multiple map data streaming
-                    {
-                        appendTxt(ref rtBox, "Map data streaming", colorCmd);
-                        UInt64 mapSrvProt = data[6];
-                        if (mapSrvProt == 0) {
-                            decodeParam(ref rtBox, "Protocol", mapSrvProt, 2);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong MapSrvProt=" + mapSrvProt, colorErr);
-                        }
-
-                        UInt64 mapId = (UInt64)((data[6] << 8) + data[7]);
-                        decodeParam(ref rtBox, "Id", mapId, 2);
-                        UInt64 subMapId = data[8];
-                        decodeParam(ref rtBox, "Id", subMapId, 2);
-                        int method = data[9];
-                        bErr |= decodeDictParam(ref rtBox, ref MapMethods, colorData, method, true);
-                        UInt64 mapOffset = (UInt64)((data[10] << 24) + (data[11] << 16) + (data[12] << 8) + data[13]);
-                        decodeParam(ref rtBox, "MapOffset", subMapId, 8);
-
-                        if (dataLen >= 9) {
-                            string hex = BitConverter.ToString(data, 14, dataLen - 9).Replace('-', ' ');
-                            decodeParamStr(ref rtBox, "EntityData", hex);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd1 | 0x33: // Cmd RF learning
-                    {
-                        appendTxt(ref rtBox, "RF Learning", colorCmd);
-                        int learnStatus = data[7];
-                        if (learnStatus == 1) {
-                            appendTxt(ref rtBox, " enter RF learning", colorData);
-                        } else if (learnStatus == 2) {
-                            appendTxt(ref rtBox, " exit RF learning", colorData);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong LearnStatus=" + learnStatus, colorErr);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen3 | SCmd1 | 0x33: // Cmd RF learning
-                    {
-                        appendTxt(ref rtBox, "RF Learning", colorCmd);
-                        int learnStatus = data[7];
-                        if (learnStatus == 1) {
-                            appendTxt(ref rtBox, " enter RF learning", colorData);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong LearnStatus=" + learnStatus, colorErr);
-                        }
-
-                        int respStatus = data[8];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else if (respStatus == 2) {
-                            appendTxt(ref rtBox, " Exit the RF learning status", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd2 | 0x33: // Response RF learning
-                case Ver3 | DLen2 | SCmd2 | 0x33: // (hint: the Tuya example is sent with Ver0, but defined with Ver3)
-                    {
-                        appendTxt(ref rtBox, "RF Learning", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true, true);
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmd2 | 0x33: // Report RF learning
-                    {
-                        appendTxt(ref rtBox, "Report RF learning", colorCmd);
-                        int rfType = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref RFTypes, colorData, rfType, true);
-                        UInt64 numKeyVal = data[8];
-                        decodeParam(ref rtBox, "NumKeyVal", numKeyVal);
-                        UInt64 serNum = data[9];
-                        decodeParam(ref rtBox, "SerNum", serNum);
-                        int freq = data[10];
-                        bErr |= decodeDictParam(ref rtBox, ref Frequencies, colorData, freq, true);
-                        UInt64 transRate = (UInt64)((data[11] << 8) + data[12]);
-                        decodeParam(ref rtBox, "TransmissionRate", transRate);
-
-                        if (dataLen >= 8) {
-                            int offset = 13;
-                            while (!bErr && offset < (num - 7)) {
-                                UInt64 times = data[offset];
-                                decodeParam(ref rtBox, "T", times);
-                                UInt64 delay = (UInt64)((data[offset + 1] << 8) + data[offset + 2]);
-                                decodeParam(ref rtBox, "D", delay);
-                                UInt64 intervals = (UInt64)((data[offset + 3] << 8) + data[offset + 4]);
-                                decodeParam(ref rtBox, "I", intervals);
-                                UInt64 length = (UInt64)((data[offset + 5] << 8) + data[offset + 6]);
-                                decodeParam(ref rtBox, "L", length);
-                                UInt64 code = (UInt64)data[offset + 7];
-                                decodeParam(ref rtBox, "C", code);
-                                offset += 8;
+                    case Ver3 | DLenX | 0x07: // Report Data
+                        {
+                            appendTxt(ref rtBox, "Report Data", colorCmd);
+                            int offset = 6; // start index to read status of DP units
+                            // decode all status of DP units
+                            while (bErr == false && offset < (num - 1)) {
+                                bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
                             } // while
                             if (offset != (num - 1)) { // all eaten? => no
-                                appendTxt(ref rtBox, " Wrong RF data offset=" + offset, colorErr);
+                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
                                 bErr = true;
                             }
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver0 | DLen2 | SCmd3 | 0x33: // Result RF learning
-                case Ver3 | DLenX | SCmd3 | 0x33: // Report RF learning
-                    {
-                        appendTxt(ref rtBox, "RF learning", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true, true);
-                        if (dataLen > 2) {
-                            string hex = BitConverter.ToString(data, 8, dataLen - 2).Replace('-', ' ');
-                            decodeParamStr(ref rtBox, "Learned", hex);
+                    case Ver0 | DLen0 | 0x08: // Query DP status
+                        {
+                            appendTxt(ref rtBox, "Query DP status", colorCmd);
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver0 | DLen2 | SCmd1 | 0x34: // Response Enable time service notification
-                    {
-                        appendTxt(ref rtBox, "Enable time service notification", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd1 | 0x34: // Enable time service notification
-                    {
-                        appendTxt(ref rtBox, "Enable time service notification", colorCmd);
-                        int timeZone = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref TimeZones, colorData, timeZone, true);
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmd2 | 0x34: // Response time
-                    {
-                        appendTxt(ref rtBox, "Response time", colorCmd);
-                        int timeZone = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref TimeZones, colorData, timeZone, true);
-                        int offset = 8;
-                        int year = data[offset++] + 2000;
-                        int month = data[offset++];
-                        int day = data[offset++];
-                        int hour = data[offset++];
-                        int minute = data[offset++];
-                        int second = data[offset++];
-                        UInt64 week = data[13];
-                        try {
-                            DateTime date = new DateTime(year, month, day, hour, minute, second);
-                            decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
-                            decodeParam(ref rtBox, "Week", week);
-                        } catch {
-                            string hex = BitConverter.ToString(data, 10, 5).Replace('-', ' ');
-                            appendTxt(ref rtBox, " Wrong DateTime Parameter=" + hex, colorErr);
-                            bErr = true;
+                    case Ver0 | DLen4 | 0x0a: // Cmd Start OTA update
+                        {
+                            appendTxt(ref rtBox, "Start OTA update", colorCmd);
+                            UInt64 size = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
+                            decodeParam(ref rtBox, "Size", size);
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver3 | DLen1 | SCmd2 | 0x34: // ACK Response time
-                    {
-                        appendTxt(ref rtBox, "Response time", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd3 | 0x34: // Send Status from MCU to module
-                    {
-                        appendTxt(ref rtBox, "Send Status", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd3 | 0x34: // Response Send Status from MCU to module
-                    {
-                        appendTxt(ref rtBox, "Send Status", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true, true);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd4 | 0x34: // Response Reset
-                    {
-                        appendTxt(ref rtBox, "Reset", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd4 | 0x34: // Reset Cmd
-                    {
-                        appendTxt(ref rtBox, "Reset", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd5 | 0x34: // Reset Status
-                    {
-                        appendTxt(ref rtBox, "Reset Status", colorCmd);
-                        int state = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref ResetStates, colorData, state, true);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd5 | 0x34: // ACK Reset Status
-                    {
-                        appendTxt(ref rtBox, "Reset Status", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd6 | 0x34: // Response Send Status from MCU to module
-                    {
-                        appendTxt(ref rtBox, "Send Status", colorCmd);
-                        appendTxt(ref rtBox, " Get map session ID", colorInfo);
-                    }
-                    break;
-
-                case Ver0 | DLen4 | SCmd6 | 0x34: // Response Send Status from MCU to module
-                    {
-                        appendTxt(ref rtBox, "Send Status", colorCmd);
-                        int sucFlag = data[7];
-                        if (sucFlag == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (sucFlag == 1) {
-                            appendTxt(ref rtBox, " The map streaming service is not enabled", colorErr);
-                        } else if (sucFlag == 2) {
-                            appendTxt(ref rtBox, " Failed to get the session ID", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong SuccessFlag=" + sucFlag, colorErr);
-                            bErr = true;
+                    case Ver3 | DLen1 | 0x0a: // Response Start OTA update
+                        {
+                            appendTxt(ref rtBox, "Start OTA update", colorCmd);
+                            int packSize = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref PacketSizes, colorData, packSize, false);
                         }
-                        int mapId = (data[8] << 8) + data[9];
-                        appendTxt(ref rtBox, " Id=0x", colorDP);
-                        appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
-                    }
-                    break;
+                        break;
 
-                case Ver0 | DLenX | SCmd7 | 0x34: // Response Get information about Wi-Fi module
-                    {
-                        appendTxt(ref rtBox, "Wi-Fi Infos", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                        if (dataLen > 8) {
-                            string infoTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
-                            appendTxt(ref rtBox, " " + infoTxt, colorData);
+                    case Ver0 | DLen4 | 0x0b: // Transmit update package (last packet)
+                    case Ver0 | DLenX | 0x0b: // Transmit update package
+                        {
+                            appendTxt(ref rtBox, "Transmit Package", colorCmd);
+                            UInt64 offset = (UInt64)((data[6] << 24) + (data[7] << 16) + (data[8] << 8) + data[9]);
+                            decodeParam(ref rtBox, "Offset", offset, 8);
+
+                            if (dataLen > 4) {
+                                // data bytes
+                                string hex = BitConverter.ToString(data, 10, dataLen - 4).Replace('-', ' ');
+                                decodeParamStr(ref rtBox, "Data", hex);
+                            }
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver3 | DLen2 | SCmd7 | 0x34: // Get information about Wi-Fi module
-                case Ver3 | DLen3 | SCmd7 | 0x34: // Get information about Wi-Fi module
-                case Ver3 | DLen4 | SCmd7 | 0x34: // Get information about Wi-Fi module
-                case Ver3 | DLenX | SCmd7 | 0x34: // Get information about Wi-Fi module
-                    {
-                        appendTxt(ref rtBox, "Get Wi-Fi Infos", colorCmd);
-                        int offset = 7;
-                        while (offset < (num - 1)) {
-                            int info = data[offset++];
-                            bErr |= decodeDictParam(ref rtBox, ref WiFiInfos, colorData, info, true);
-                        } // while
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmdb | 0x34: // Response Send Status from MCU to module
-                case Ver3 | DLenX | SCmdb | 0x34: // Response Send Status from MCU to module
-                    {
-                        appendTxt(ref rtBox, "Send Status", colorCmd);
-                        int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 2) {
-                            appendTxt(ref rtBox, " Invalid Data", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                    case Ver3 | DLen0 | 0x0b: // ACK Transmit update package
+                        {
+                            appendTxt(ref rtBox, "Transmit Package", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
                         }
+                        break;
 
-                        if (dataLen >= 9) {
-                            int resTime = data[8];
-                            bErr |= decodeDictParam(ref rtBox, ref ResultTimes, colorData, resTime, true);
+                    case Ver3 | DLen0 | 0x0c: // Get system time in GMT
+                        {
+                            appendTxt(ref rtBox, "Get GMT Time", colorCmd);
+                        }
+                        break;
 
-                            int year = data[9] + 2000;
-                            int month = data[10];
-                            int day = data[11];
-                            int hour = data[12];
-                            int minute = data[13];
-                            int second = data[14];
+                    case Ver0 | DLenX | 0x0c: // Response Get system time in GMT
+                        {
+                            appendTxt(ref rtBox, "Get GMT Time", colorCmd);
+                            int obtainFlag = data[6];
+                            decodeResponse(ref rtBox, obtainFlag, false, true);
+                            int year = data[7] + 2000;
+                            int month = data[8];
+                            int day = data[9];
+                            int hour = data[10];
+                            int minute = data[11];
+                            int second = data[12];
                             try {
                                 DateTime date = new DateTime(year, month, day, hour, minute, second);
-                                decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
-                            } catch {
-                                string hex = BitConverter.ToString(data, 10, 5).Replace('-', ' ');
-                                appendTxt(ref rtBox, " Wrong DateTime Parameter=" + hex, colorErr);
-                                bErr = true;
-                            }
-
-                            // decode all status of DP units
-                            int offset = 15; // start index to read status of DP units
-                            while (bErr == false && offset < (num - 1)) {
-                                bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
-                            } // while
-                            if (offset != (num - 1)) { // all eaten? => no
-                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                                bErr = true;
-                            }
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen3 | SCmd1 | 0x35: // Response Bluetooth functional test
-                    {
-                        appendTxt(ref rtBox, "Bluetooth functional test", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, false);
-                        if (respStatus == 0) {
-                            int err = data[8];
-                            appendTxt(ref rtBox, " error=", colorErr);
-                            appendTxt(ref rtBox, (err == 0) ? "No beacon" : (err == 1) ? "No license" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
-                        } else {
-                            UInt64 signal = data[8];
-                            decodeParam(ref rtBox, "Signal", signal);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd1 | 0x35: // Cmd Bluetooth functional test
-                    {
-                        appendTxt(ref rtBox, "Bluetooth functional test", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd4 | 0x35: // Response Bluetooth Status
-                case Ver3 | DLen2 | SCmd5 | 0x35: // Response Bluetooth connection status
-                    {
-                        appendTxt(ref rtBox, "Bluetooth Status", colorCmd);
-                        int state = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref BluetoothStatus, colorInfo, state, true);
-                        bErr |= decodeDictParam(ref rtBox, ref BluetoothLEDStatus, colorParam, state, true);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | SCmd4 | 0x35: // ACK Bluetooth Status
-                    {
-                        appendTxt(ref rtBox, "Bluetooth Status", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd5 | 0x35: // Request Bluetooth connection status
-                    {
-                        appendTxt(ref rtBox, "Request Bluetooth connection status", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmd6 | 0x35: // Data notification for Bluetooth/Beacon remote control
-                    {
-                        appendTxt(ref rtBox, "Data notification for Bluetooth/Beacon remote control", colorCmd);
-                        UInt64 catId = data[7];
-                        decodeParam(ref rtBox, "CatId", catId);
-                        UInt64 ctrlCmd = data[8];
-                        decodeParam(ref rtBox, "CtrlCmd", ctrlCmd);
-                        UInt64 cmdData = (UInt64)((data[9] << 24) + (data[10] << 16) + (data[11] << 8) + data[12]);
-                        decodeParam(ref rtBox, "CmdData", cmdData, 8);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd6 | 0x35: // ACK Data notification for Bluetooth/Beacon remote control
-                    {
-                        appendTxt(ref rtBox, "Data notification for Bluetooth/Beacon remote control", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd1 | 0x36: // Response Enable the extended DP service
-                    {
-                        appendTxt(ref rtBox, "Enable ext. DP service", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd1 | 0x36: // Enable the extended DP service
-                    {
-                        appendTxt(ref rtBox, "Enable ext. DP service", colorCmd);
-                        int flag = data[7];
-                        if (flag == 0) {
-                            appendTxt(ref rtBox, " disable", colorInfo);
-                        } else if (flag == 1) {
-                            appendTxt(ref rtBox, " enable", colorInfo);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong Flag=" + flag, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmd2 | 0x36: // Send commands of extended DPs
-                    {
-                        appendTxt(ref rtBox, "Send commands of extended DPs", colorCmd);
-                        int dataSrc = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref DataSources, colorData, dataSrc, true);
-
-                        // decode all DP units
-                        int offset = 8; // start index to read DP units
-                        while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLenX | SCmd3 | 0x36: // Report status of extended DPs
-                    {
-                        appendTxt(ref rtBox, "Report status of extended DPs", colorCmd);
-                        int repStatus = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref McuReportStatus, colorData, repStatus, true);
-                        int dataSrc = data[8];
-                        bErr |= decodeDictParam(ref rtBox, ref DataSources, colorData, dataSrc, true);
-
-                        // decode all DP units
-                        int offset = 9; // start index to read DP units
-                        while (bErr == false && offset < (num - 1)) {
-                            bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd0 | 0x37: // Notification of new features
-                case Ver0 | DLen3 | SCmd0 | 0x37: // Notification of new features
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        int mcuOTA = data[7];
-                        if (mcuOTA < 2) {
-                            appendTxt(ref rtBox, " McuOTA=" + ((mcuOTA == 0) ? "Scratchpad" : "No scratchpad"), colorInfo);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong McuOTA=" + mcuOTA, colorErr);
-                            bErr = true;
-                        }
-                        if (dataLen == 3) {
-                            int abv = data[8];
-                            decodeAbv(ref rtBox, abv);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd0 | 0x37: // Request of new features
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        appendTxt(ref rtBox, " Request", colorSubCmd);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd0 | 0x37: // Response of new feature request
-                    {
-                        appendTxt(ref rtBox, "Feature Request", colorCmd);
-                        int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Failure", colorErr);
-                        } else if (respStatus == 2) {
-                            appendTxt(ref rtBox, " Invalid Data", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLenX | SCmd0 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        string prodTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
-                        appendTxt(ref rtBox, " " + prodTxt, colorData);
-                        int idx = prodTxt.IndexOf("\"abv\":") + 6;
-                        if (idx > 6) {
-                            int abv;
-                            string subStr = prodTxt.Substring(idx, prodTxt.IndexOfAny(separators, idx) - idx);
-                            if (Int32.TryParse(subStr, out abv)) {
-                                decodeAbv(ref rtBox, abv);
-                            }
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd1 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        appendTxt(ref rtBox, " Notify file download task", colorInfo);
-                    }
-                    break;
-
-                case Ver0 | DLen3 | SCmd1 | 0x37: // Notification of new feature setting
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        int accept = data[7];
-                        if (accept == 0) {
-                            int packSize = data[8];
-                            bErr |= decodeDictParam(ref rtBox, ref PacketSizes, colorParam, packSize, false);
-                        } else if (accept == 1) {
-                            int transfStatus = data[8];
-                            bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong Accept=" + accept, colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmd2 | 0x37: // File Info Sync
-                    {
-                        appendTxt(ref rtBox, "File Info Sync", colorCmd);
-                        // assuming Tuya spec means: file info is presented like in 0x37 subCmd 6
-                        string fileInfosTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
-                        appendTxt(ref rtBox, " " + fileInfosTxt, colorData);
-
-                        int idx = fileInfosTxt.IndexOf("\"type\":") + 7;
-                        if (idx > 7) {
-                            int fInfo;
-                            string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
-                            if (Int32.TryParse(subStr, out fInfo)) {
-                                decodeDictParam(ref rtBox, ref FileTypes, colorParam, fInfo, false);
-                            }
-                        }
-
-                        idx = fileInfosTxt.IndexOf("\"act\":") + 6;
-                        if (idx > 6) {
-                            int fAction;
-                            string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
-                            if (Int32.TryParse(subStr, out fAction)) {
-                                decodeDictParam(ref rtBox, ref FileActions, colorParam, fAction, false);
-                            }
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd2 | 0x37: // Response File Info Sync
-                    {
-                        appendTxt(ref rtBox, "File Info Sync", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver0 | DLen3 | SCmd4 | 0x37: // Response Interrupt file transfer
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        appendTxt(ref rtBox, " Response of interrupt file transfer", colorInfo);
-                        int cmdTerm = data[7];
-                        int respStatus = data[8];
-
-                        if (cmdTerm == 1) {
-                            if (respStatus == 0) {
-                                appendTxt(ref rtBox, " Success", colorACK);
-                            } else if (respStatus == 1) {
-                                appendTxt(ref rtBox, " Failure", colorErr);
-                            } else if (respStatus == 2) {
-                                appendTxt(ref rtBox, " Canceled", colorErr);
-                            } else {
-                                appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                            }
-                        } else if (cmdTerm == 2) {
-                            int transfStatus = data[8];
-                            bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong CmdTerm=" + cmdTerm.ToString(), colorErr);
-                            bErr = true;
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen3 | SCmd4 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        appendTxt(ref rtBox, " Interrupt file transfer", colorInfo);
-                        int intState = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref InterruptStates, colorData, intState, false);
-                        int downloadExc = data[8];
-                        bErr |= decodeDictParam(ref rtBox, ref FileDownloadExceptions, colorErr, downloadExc, false);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd6 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Set Features", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | SCmd6 | 0x37: // Request File transfer
-                    {
-                        appendTxt(ref rtBox, "File transfer", colorCmd);
-                        appendTxt(ref rtBox, " Request uploading files", colorInfo);
-                        string fileInfosTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
-                        appendTxt(ref rtBox, " " + fileInfosTxt, colorData);
-
-                        int idx = fileInfosTxt.IndexOf("\"type\":") + 7;
-                        if (idx > 7) {
-                            int fInfo;
-                            string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
-                            if (Int32.TryParse(subStr, out fInfo)) {
-                                decodeDictParam(ref rtBox, ref FileTypes, colorParam, fInfo, false);
-                            }
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen3 | SCmd7 | 0x37: // Response File transfer
-                    {
-                        appendTxt(ref rtBox, "File transfer", colorCmd);
-                        int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " successful", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " failed", colorErr);
-                        } else if (respStatus == 2) {
-                            appendTxt(ref rtBox, " canceled", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
-                        int transfStatus = data[8];
-                        bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | SCmd7 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        appendTxt(ref rtBox, " File data", colorInfo);
-                        UInt64 transId = (UInt64)((data[7] << 8) + data[8]);
-                        decodeParam(ref rtBox, "TransmissionId", transId);
-                        UInt64 offset = (UInt64)((data[9] << 24) + (data[10] << 16) + (data[11] << 8) + data[12]);
-                        decodeParam(ref rtBox, "Offset", offset, 8);
-                        if (dataLen > 6) { // data bytes
-                            string hex = Regex.Replace(BitConverter.ToString(data, 13, dataLen - 7), @"\-\S", "");
-                            decodeParamStr(ref rtBox, "Data", hex);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen4 | SCmd8 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        int cmdRet = data[7];
-                        if (cmdRet == 1) {
-                            appendTxt(ref rtBox, " File download", colorACK);
-                        } else if (cmdRet == 2) {
-                            appendTxt(ref rtBox, " File upload", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong CmdRet=" + cmdRet.ToString(), colorErr);
-                        }
-                        int respStatus = data[8];
-                        decodeResponse(ref rtBox, respStatus, true);
-                        if (respStatus == 1) {
-                            int transfStatus = data[9];
-                            bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
-                        }
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd8 | 0x37: // Notification of new feature setting ACK
-                    {
-                        appendTxt(ref rtBox, "Features", colorCmd);
-                        appendTxt(ref rtBox, " File download ACK", colorACK);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x60: // Voice features
-                    {
-                        appendTxt(ref rtBox, "Voice Features", colorCmd);
-                        int voiceState = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref VoiceStatus, colorParam, voiceState, false);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x60: // Voice features
-                    {
-                        appendTxt(ref rtBox, "Voice Features", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x61: // Voice features Mute Mic
-                    {
-                        appendTxt(ref rtBox, "Voice Features Mute Mic", colorCmd);
-                        int micState = data[6];
-                        decodeParamStr(ref rtBox, "VoiceState", (micState == 0) ? "Mic on" : "Mic muted");
-                    }
-                    break;
-
-                case Ver3 | DLen1 | 0x61: // Voice features Mute Mic
-                    {
-                        appendTxt(ref rtBox, "Voice Features Mute Mic", colorCmd);
-                        int voiceCmd = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref VoiceStatusCmds, colorInfo, voiceCmd, false);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x62: // Voice features Mute Mic
-                    {
-                        appendTxt(ref rtBox, "Voice Features", colorCmd);
-                        UInt64 volCmd = data[6];
-                        decodeParam(ref rtBox, "Volume", volCmd, 0);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | 0x62: // Voice features Mute Mic
-                    {
-                        appendTxt(ref rtBox, "Voice Features", colorCmd);
-                        UInt64 volCmd = data[6];
-                        if (volCmd == 0xa0) {
-                            appendTxt(ref rtBox, " Query", colorCmd);
-                        } else {
-                            appendTxt(ref rtBox, " Set", colorSubCmd);
-                            decodeParam(ref rtBox, "Volume", volCmd, 0);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen1| 0x63: // Voice features Test
-                    {
-                        appendTxt(ref rtBox, "Voice Test", colorCmd);
-                        int testState = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref VoiceTestCmds, colorInfo, testState, false);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | 0x63: // Voice features Test
-                    {
-                        appendTxt(ref rtBox, "Voice Test", colorCmd);
-                        int voiceCmd = data[6];
-                        if (voiceCmd == 0xa0) {
-                            appendTxt(ref rtBox, " Query", colorCmd);
-                        } else {
-                            appendTxt(ref rtBox, " Set", colorSubCmd);
-                            bErr |= decodeDictParam(ref rtBox, ref VoiceTestCmds, colorInfo, voiceCmd, false);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen1 | 0x64: // Test waking up voice assistant
-                    {
-                        appendTxt(ref rtBox, "Test Waking Up", colorCmd);
-                        int testWakUp = data[6];
-                        bErr |= decodeDictParam(ref rtBox, ref TestWakingUpCmds, colorInfo, testWakUp, false);
-                    }
-                    break;
-
-                case Ver3 | DLen0 | 0x64: // Test waking up voice assistant
-                    {
-                        appendTxt(ref rtBox, "Test Waking Up", colorCmd);
-                        appendTxt(ref rtBox, " Cmd", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd0 | 0x65: // Voice module play
-                    {
-                        appendTxt(ref rtBox, "Voice Module Play", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLenX | SCmd0 | 0x65: // Voice module play list
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
-                        appendTxt(ref rtBox, " " + playTxt, colorData);
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmd1 | 0x65: // Voice module play list
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
-                        appendTxt(ref rtBox, " " + playTxt, colorData);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd1 | 0x65: // Voice module Play
-                    {
-                        appendTxt(ref rtBox, "Voice Module Play", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd2 | 0x65: // Voice module wake up
-                    {
-                        appendTxt(ref rtBox, "Voice Module Wake Up", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd2 | 0x65: // Voice module wake up
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        appendTxt(ref rtBox, " Wake Up", colorCmd);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd3 | 0x65: // Voice module ASR
-                    {
-                        appendTxt(ref rtBox, "Voice Module ASR", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd3 | 0x65: // Response Voice module ASR
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        int asrCmd = data[7]; // automatic speech recognition
-                        bErr |= decodeDictParam(ref rtBox, ref VoiceASRCmds, colorParam, asrCmd, true);
-                    }
-                    break;
-
-                case Ver0 | DLen1 | SCmd4 | 0x65: // Voice module Query play media
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        appendTxt(ref rtBox, " Query Play Media", colorSubCmd);
-                    }
-                    break;
-
-                case Ver3 | DLenX | SCmd4 | 0x65: // Response Voice module play media
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
-                        appendTxt(ref rtBox, " " + playTxt, colorData);
-                    }
-                    break;
-
-                case Ver3 | DLen1 | SCmd5 | 0x65: // Voice module Query playlist
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        appendTxt(ref rtBox, " Query Playlist", colorSubCmd);
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmd5 | 0x65: // Response Voice module query playlist
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        int respStatus = data[7];
-                        if (respStatus == 0) {
-                            appendTxt(ref rtBox, " Query Playlist Success", colorACK);
-                        } else if (respStatus == 1) {
-                            appendTxt(ref rtBox, " Query Playlist Failure", colorErr);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
-                        }
-                        if (respStatus == 0 && dataLen > 2) {
-                            string playTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
-                            appendTxt(ref rtBox, " " + playTxt, colorData);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd6 | 0x65: // Voice module Call
-                    {
-                        appendTxt(ref rtBox, "Voice Module Call", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd6 | 0x65: // Response Voice module Call
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        int vcCmd = data[7]; // voice cmd
-                        bErr |= decodeDictParam(ref rtBox, ref VoiceCallCmds, colorParam, vcCmd, true);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd7 | 0x65: // Voice module Start Rec
-                    {
-                        appendTxt(ref rtBox, "Voice Module Start Recording", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd7 | 0x65: // Response Voice module Start Rec
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        int recCmd = data[7]; // start recording
-                        if (recCmd == 1) {
-                            appendTxt(ref rtBox, " Start Recording", colorSubCmd);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong recCmd=" + recCmd.ToString(), colorErr);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd8 | 0x65: // Voice module Stop Rec
-                    {
-                        appendTxt(ref rtBox, "Voice Module Stop Recording", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd8 | 0x65: // Response Voice module start/stop recording
-                    {
-                        appendTxt(ref rtBox, "Voice Module", colorCmd);
-                        int recStatus = data[7];
-                        if (recStatus == 0) {
-                            appendTxt(ref rtBox, " Recording stopped", colorInfo);
-                        } else if (recStatus == 1) {
-                            appendTxt(ref rtBox, " Recording started", colorInfo);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + recStatus.ToString(), colorErr);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd9 | 0x65: // Alarm state change
-                    {
-                        appendTxt(ref rtBox, "Alarm state Change", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd9 | 0x65: // Alarm en-/disable
-                    {
-                        appendTxt(ref rtBox, "Alarm", colorCmd);
-                        int alarmState = data[7];
-                        if (alarmState == 0) {
-                            appendTxt(ref rtBox, " disabled", colorSubCmd);
-                        } else if (alarmState == 1) {
-                            appendTxt(ref rtBox, " enabled", colorSubCmd);
-                        } else {
-                            appendTxt(ref rtBox, " Wrong RespStatus=" + alarmState.ToString(), colorErr);
-                        }
-                    }
-                    break;
-
-                case Ver0 | DLenX | SCmda | 0x65: // Set alarms
-                    {
-                        appendTxt(ref rtBox, "Set Alarms", colorCmd);
-                        UInt64 numAlarms = data[7];
-                        decodeParam(ref rtBox, "NumAlarms", numAlarms);
-                        int opType = data[8];
-                        bErr |= decodeDictParam(ref rtBox, ref RingToneOpStates, colorParam, opType, false);
-
-                        int offset = 9; // start index to read alarms
-                        // decode all alarms
-                        while (bErr == false && offset < (num - 1)) {
-                            UInt64 alarmId = (UInt64)(data[offset++] << 40) + (UInt64)(data[offset++] << 32) + (UInt64)(data[offset++] << 24) + (UInt64)(data[offset++] << 16) + (UInt64)(data[offset++] << 8) + data[offset++];
-                            decodeParam(ref rtBox, "AlarmId", alarmId, 12);
-
-                            int year = data[offset++] + 2000;
-                            int month = data[offset++];
-                            int day = data[offset++];
-                            int hour = data[offset++];
-                            int minute = data[offset++];
-                            try {
-                                DateTime date = new DateTime(year, month, day, hour, minute, 0);
                                 decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
                             } catch {
                                 appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
                                 bErr = true;
                             }
-                            int rule = data[offset++];
-                            if (rule == 0) {
-                                appendTxt(ref rtBox, " One-Time-Alarm", colorData);
-                            } else {
-                                string days = "";
-                                if (0x01 == (rule & 0x01)) { days += "enabled "; } else { days += "dismissed "; }
-                                if (0x02 == (rule & 0x02)) { days += "Saturday,"; }
-                                if (0x04 == (rule & 0x04)) { days += "Friday,"; }
-                                if (0x08 == (rule & 0x08)) { days += "Thursday,"; }
-                                if (0x10 == (rule & 0x10)) { days += "Wednesday,"; }
-                                if (0x20 == (rule & 0x20)) { days += "Tuesday,"; }
-                                if (0x40 == (rule & 0x40)) { days += "Monday,"; }
-                                if (0x80 == (rule & 0x80)) { days += "Sunday,"; }
-                                decodeParamStr(ref rtBox, "Rule", days.Trim(','));
-                            }
-
-                            int tone = data[offset++];
-                            if (tone == 0) {
-                                appendTxt(ref rtBox, " Online ringtone", colorInfo);
-                            } else {
-                                appendTxt(ref rtBox, " Local ringtone", colorInfo);
-                            }
-
-                            string toneTxt = Encoding.UTF8.GetString(data, offset, 21);
-                            if (toneTxt[0] == '\0')
-                                toneTxt = "";
-                            decodeParamStr(ref rtBox, "RingToneName", toneTxt);
-
-                            offset += 21;
-                        } // while
-                        if (offset != (num - 1)) { // all eaten? => no
-                            appendTxt(ref rtBox, " Wrong Alarm decoding offset=" + offset, colorErr);
-                            bErr = true;
                         }
-                    }
-                    break;
+                        break;
 
-                case Ver3 | DLen1 | SCmda | 0x65: // Set alarms ACK
-                    {
-                        appendTxt(ref rtBox, "Set Alarms", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
+                    case Ver0 | DLen2 | 0x0e: // Response Test Wi-Fi functionality
+                        {
+                            appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
+                            int obtainFlag = data[6];
+                            decodeResponse(ref rtBox, obtainFlag, false, true);
+                            if (obtainFlag == 0) {
+                                int err = data[7];
+                                appendTxt(ref rtBox, " error=", colorErr);
+                                appendTxt(ref rtBox, (err == 0) ? "SSID is not found" : (err == 1) ? "No authorization key" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
+                            } else if (obtainFlag == 1) {
+                                UInt64 signal = data[7];
+                                decodeParam(ref rtBox, "Signal", signal);
+                            }
+                        }
+                        break;
 
-                case Ver3 | DLen1 | SCmdb | 0x65: // Query alarm list
-                    {
-                        appendTxt(ref rtBox, "Query Alarms", colorCmd);
-                    }
-                    break;
+                    case Ver3 | DLen0 | 0x0e: // Cmd Test Wi-Fi functionality
+                        {
+                            appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
 
-                case Ver0 | DLen2 | SCmdc | 0x65: // Response Voice module Turn on/off local alarm
-                    {
-                        appendTxt(ref rtBox, "Turn on/off local alarm", colorCmd);
-                        appendTxt(ref rtBox, " ACK", colorACK);
-                    }
-                    break;
+                    case Ver0 | DLen4 | 0x0f: // Response Get module’s memory
+                        {
+                            appendTxt(ref rtBox, "Memory", colorCmd);
+                            UInt64 val = (UInt64)((data[9] << 24) + (data[8] << 16) + (data[7] << 8) + data[6]);
+                            decodeParam(ref rtBox, "Free", val);
+                        }
+                        break;
 
-                case Ver3 | DLen2 | SCmdc | 0x65: // Voice module Turn on/off local alarm
-                    {
-                        appendTxt(ref rtBox, "Turn on/off local alarm", colorCmd);
-                        int onOff = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref SwitchLocalAlarms, colorParam, onOff, false);
-                    }
-                    break;
+                    case Ver3 | DLen0 | 0x0f: // Get module’s memory
+                        {
+                            appendTxt(ref rtBox, "Get Memory", colorCmd);
+                        }
+                        break;
 
-                case Ver0 | DLenX | SCmdd | 0x65: // Response Change Alarm
-                    {
-                        appendTxt(ref rtBox, "Change alarm", colorCmd);
-                        int cmdAlarm = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref SetAlarms, colorParam, cmdAlarm, false);
-                        int op = data[8];
-                        bErr |= decodeDictParam(ref rtBox, ref AlarmOpResponses, colorParam, op, false);
-                    }
-                    break;
+                    case Ver3 | DLen0 | 0x1c: // Get Local time
+                        {
+                            appendTxt(ref rtBox, "Get Local Time", colorCmd);
+                        }
+                        break;
 
-                case Ver3 | DLenX | SCmdd | 0x65: // Change Alarm
-                    {
-                        appendTxt(ref rtBox, "Change alarm", colorCmd);
-                        int cmdAlarm = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref SetAlarms, colorParam, cmdAlarm, false);
-                        if (dataLen > 8) {
-                            string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
+                    case Ver0 | DLenX | 0x1c: // Response Get Local time
+                        {
+                            appendTxt(ref rtBox, "Get Local Time", colorCmd);
+                            int obtainFlag = data[6];
+                            decodeResponse(ref rtBox, obtainFlag, false, true);
+                            int year = data[7] + 2000;
+                            int month = data[8];
+                            int day = data[9];
+                            int hour = data[10];
+                            int minute = data[11];
+                            int second = data[12];
+                            UInt64 week = data[13];
+                            try {
+                                DateTime date = new DateTime(year, month, day, hour, minute, second);
+                                decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
+                                decodeParam(ref rtBox, "Week", week);
+                            } catch {
+                                appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | 0x20: // ACK Weather Service specification
+                        {
+                            appendTxt(ref rtBox, "Enable weather services", colorCmd);
+                            int obtainFlag = data[6];
+                            decodeResponse(ref rtBox, obtainFlag, false, true);
+                            if (obtainFlag == 0) {
+                                int sucFlag = data[7];
+                                if (sucFlag == 1) {
+                                    appendTxt(ref rtBox, " Invalid data format" + sucFlag, colorErr);
+                                } else if (sucFlag == 2) {
+                                    appendTxt(ref rtBox, " Exception error" + sucFlag, colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong SuccessFlag=" + sucFlag, colorErr);
+                                }
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLenX | 0x20: // Weather Service specification
+                        {
+                            appendTxt(ref rtBox, "Enable weather services", colorCmd);
+                            bErr |= decodeWeatherParameter(ref rtBox, ref data, num, false, 6);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | 0x21: // Enable weather services
+                        {
+                            appendTxt(ref rtBox, "Enable weather services", colorCmd);
+                            int sucFlag = data[6];
+                            decodeResponse(ref rtBox, sucFlag, false, true);
+                            bErr |= decodeWeatherParameter(ref rtBox, ref data, num, true, 7);
+                        }
+                        break;
+
+                    case Ver0 | DLen0 | 0x21: // ACK Enable weather services
+                        {
+                            appendTxt(ref rtBox, "Enable weather services", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver0 |DLen1 | 0x22: // Report Status (hint: might be that cmd 0x23 is used)
+                        {
+                            appendTxt(ref rtBox, "Report Status", colorCmd);
+                            int respStatus = data[6];
+                            decodeResponse(ref rtBox, respStatus, false, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | 0x22: // Report Status
+                        {
+                            appendTxt(ref rtBox, "Report Status", colorCmd);
+
+                            // decode all status of DP units
+                            int offset = 6; // start index to read status of DP units
+                            while (bErr == false && offset < (num - 1)) {
+                                bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
+                            } // while
+                            if (offset != (num - 1)) { // all eaten? => no
+                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x23: // Response Report Status
+                        {
+                            appendTxt(ref rtBox, "Report Status", colorCmd);
+                            int respStatus = data[6];
+                            decodeResponse(ref rtBox, respStatus, false);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x24: // Response Get Wi-Fi signal strength
+    {
+                            appendTxt(ref rtBox, "Wi-Fi signal strength", colorCmd);
+                            UInt64 signal = data[6];
+                            decodeParam(ref rtBox, "Signal", signal);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x24: // Get Wi-Fi signal strength
+                        {
+                            appendTxt(ref rtBox, "Get Wi-Fi signal strength", colorCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen0 | 0x25: // ACK Disable heartbeats
+                        {
+                            appendTxt(ref rtBox, "Disable heartbeats", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x25: // Cmd Disable heartbeats
+                        {
+                            appendTxt(ref rtBox, "Disable heartbeats", colorCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x28: // Response Map streaming for robot vacuum
+                        {
+                            appendTxt(ref rtBox, "Map data streaming for robot vacuum", colorCmd);
+                            int netDataResp = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref MapDataResponses, colorData, netDataResp, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | 0x28: // Map streaming for robot vacuum
+                        {
+                            appendTxt(ref rtBox, "Map data streaming for robot vacuum", colorCmd);
+                            UInt64 mapId = (UInt64)((data[6] << 8) + data[7]);
+                            decodeParam(ref rtBox, "Id", mapId, 4);
+                            int offset = 8;
+                            while (!bErr && offset < (num - 4)) {
+                                int dataOffset = (data[offset] << 24) + (data[offset + 1] << 16) + (data[offset + 2] << 8) + data[offset + 3];
+                                appendTxt(ref rtBox, " 0x" + dataOffset.ToString("X8"), colorData);
+                                offset += 4;
+                            } // while
+                            if (offset != (num - 1)) { // all eaten? => no
+                                appendTxt(ref rtBox, " Wrong Map data offset=" + offset, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x2a: // Response Pairing via serial port
+                        {
+                            appendTxt(ref rtBox, "Pairing via serial port", colorCmd);
+                            int resPairing = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref ResultsPairing, colorData, resPairing, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | 0x2a: // Pairing via serial port
+                        {
+                            appendTxt(ref rtBox, "Pairing via serial port", colorCmd);
+                            string str = Encoding.UTF8.GetString(data, 6, dataLen);
+                            appendTxt(ref rtBox, str, colorData);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x2b: // Response Get the current network status
+                        {
+                            appendTxt(ref rtBox, "Network Status", colorCmd);
+                            int netState = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref NetworkStates, colorData, netState, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x2b: // Get the current network status
+                        {
+                            appendTxt(ref rtBox, "Get Network Status", colorCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x2c: // Test Wi-Fi functionality (connection)
+                        {
+                            appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
+                            int respStatus = data[6];
+                            decodeResponse(ref rtBox, respStatus, false, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | 0x2c: // Response Test Wi-Fi functionality (connection)
+                        {
+                            appendTxt(ref rtBox, "Test Wi-Fi", colorCmd);
+                            string str = Encoding.UTF8.GetString(data, 6, dataLen);
+                            appendTxt(ref rtBox, str, colorData);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | 0x2d: // Reponse Get module’s MAC address
+                        {
+                            appendTxt(ref rtBox, "Get MAC Addr", colorCmd);
+                            int obtainFlag = data[6];
+                            decodeResponse(ref rtBox, obtainFlag, true, true);
+
+                            if (obtainFlag == 0) {
+                                appendTxt(ref rtBox, " Addr=", colorParam);
+                                string hex = BitConverter.ToString(data, 7, dataLen - 1).Replace('-', ':');
+                                decodeParamStr(ref rtBox, "EntityData", hex);
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x2d: // Get module’s MAC address
+                        {
+                            appendTxt(ref rtBox, "Get MAC Addr", colorCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x2e: // Response IR status notification
+                        {
+                            appendTxt(ref rtBox, "IR Status", colorCmd);
+                            int irStatus = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref IRStatus, colorData, irStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x2e: // Cmd IR status notification
+                        {
+                            appendTxt(ref rtBox, "IR Status", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x2f: // Response IR functionality test
+                        {
+                            appendTxt(ref rtBox, "IR Test", colorCmd);
+                            int respStatus = data[6];
+                            decodeResponse(ref rtBox, respStatus, true, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x2f: // Cmd IR functionality test
+                        {
+                            appendTxt(ref rtBox, "IR Test", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | 0x30: // Multiple map data streaming
+                        {
+                            appendTxt(ref rtBox, "Map data streaming", colorCmd);
+                            int respStatus = data[6];
+                            decodeResponse(ref rtBox, respStatus, true, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | 0x30: // Response Multiple map data streaming
+                        {
+                            appendTxt(ref rtBox, "Map data streaming", colorCmd);
+                            UInt64 mapSrvProt = data[6];
+                            if (mapSrvProt == 0) {
+                                decodeParam(ref rtBox, "Protocol", mapSrvProt, 2);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong MapSrvProt=" + mapSrvProt, colorErr);
+                            }
+
+                            UInt64 mapId = (UInt64)((data[6] << 8) + data[7]);
+                            decodeParam(ref rtBox, "Id", mapId, 2);
+                            UInt64 subMapId = data[8];
+                            decodeParam(ref rtBox, "Id", subMapId, 2);
+                            int method = data[9];
+                            bErr |= decodeDictParam(ref rtBox, ref MapMethods, colorData, method, true);
+                            UInt64 mapOffset = (UInt64)((data[10] << 24) + (data[11] << 16) + (data[12] << 8) + data[13]);
+                            decodeParam(ref rtBox, "MapOffset", subMapId, 8);
+
+                            if (dataLen >= 9) {
+                                string hex = BitConverter.ToString(data, 14, dataLen - 9).Replace('-', ' ');
+                                decodeParamStr(ref rtBox, "EntityData", hex);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd1 | 0x33: // Cmd RF learning
+                        {
+                            appendTxt(ref rtBox, "RF Learning", colorCmd);
+                            int learnStatus = data[7];
+                            if (learnStatus == 1) {
+                                appendTxt(ref rtBox, " enter RF learning", colorData);
+                            } else if (learnStatus == 2) {
+                                appendTxt(ref rtBox, " exit RF learning", colorData);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong LearnStatus=" + learnStatus, colorErr);
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen3 | SCmd1 | 0x33: // Cmd RF learning
+                        {
+                            appendTxt(ref rtBox, "RF Learning", colorCmd);
+                            int learnStatus = data[7];
+                            if (learnStatus == 1) {
+                                appendTxt(ref rtBox, " enter RF learning", colorData);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong LearnStatus=" + learnStatus, colorErr);
+                            }
+
+                            int respStatus = data[8];
+                            if (respStatus == 0) {
+                                appendTxt(ref rtBox, " Success", colorACK);
+                            } else if (respStatus == 1) {
+                                appendTxt(ref rtBox, " Failure", colorErr);
+                            } else if (respStatus == 2) {
+                                appendTxt(ref rtBox, " Exit the RF learning status", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd2 | 0x33: // Response RF learning
+                    case Ver3 | DLen2 | SCmd2 | 0x33: // (hint: the Tuya example is sent with Ver0, but defined with Ver3)
+                        {
+                            appendTxt(ref rtBox, "RF Learning", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true, true);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd2 | 0x33: // Report RF learning
+                        {
+                            appendTxt(ref rtBox, "Report RF learning", colorCmd);
+                            int rfType = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref RFTypes, colorData, rfType, true);
+                            UInt64 numKeyVal = data[8];
+                            decodeParam(ref rtBox, "NumKeyVal", numKeyVal);
+                            UInt64 serNum = data[9];
+                            decodeParam(ref rtBox, "SerNum", serNum);
+                            int freq = data[10];
+                            bErr |= decodeDictParam(ref rtBox, ref Frequencies, colorData, freq, true);
+                            UInt64 transRate = (UInt64)((data[11] << 8) + data[12]);
+                            decodeParam(ref rtBox, "TransmissionRate", transRate);
+
+                            if (dataLen >= 8) {
+                                int offset = 13;
+                                while (!bErr && offset < (num - 7)) {
+                                    UInt64 times = data[offset];
+                                    decodeParam(ref rtBox, "T", times);
+                                    UInt64 delay = (UInt64)((data[offset + 1] << 8) + data[offset + 2]);
+                                    decodeParam(ref rtBox, "D", delay);
+                                    UInt64 intervals = (UInt64)((data[offset + 3] << 8) + data[offset + 4]);
+                                    decodeParam(ref rtBox, "I", intervals);
+                                    UInt64 length = (UInt64)((data[offset + 5] << 8) + data[offset + 6]);
+                                    decodeParam(ref rtBox, "L", length);
+                                    UInt64 code = (UInt64)data[offset + 7];
+                                    decodeParam(ref rtBox, "C", code);
+                                    offset += 8;
+                                } // while
+                                if (offset != (num - 1)) { // all eaten? => no
+                                    appendTxt(ref rtBox, " Wrong RF data offset=" + offset, colorErr);
+                                    bErr = true;
+                                }
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd3 | 0x33: // Result RF learning
+                    case Ver3 | DLenX | SCmd3 | 0x33: // Report RF learning
+                        {
+                            appendTxt(ref rtBox, "RF learning", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true, true);
+                            if (dataLen > 2) {
+                                string hex = BitConverter.ToString(data, 8, dataLen - 2).Replace('-', ' ');
+                                decodeParamStr(ref rtBox, "Learned", hex);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd1 | 0x34: // Response Enable time service notification
+                        {
+                            appendTxt(ref rtBox, "Enable time service notification", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd1 | 0x34: // Enable time service notification
+                        {
+                            appendTxt(ref rtBox, "Enable time service notification", colorCmd);
+                            int timeZone = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref TimeZones, colorData, timeZone, true);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd2 | 0x34: // Response time
+                        {
+                            appendTxt(ref rtBox, "Response time", colorCmd);
+                            int timeZone = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref TimeZones, colorData, timeZone, true);
+                            int offset = 8;
+                            int year = data[offset++] + 2000;
+                            int month = data[offset++];
+                            int day = data[offset++];
+                            int hour = data[offset++];
+                            int minute = data[offset++];
+                            int second = data[offset++];
+                            UInt64 week = data[13];
+                            try {
+                                DateTime date = new DateTime(year, month, day, hour, minute, second);
+                                decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
+                                decodeParam(ref rtBox, "Week", week);
+                            } catch {
+                                string hex = BitConverter.ToString(data, 10, 5).Replace('-', ' ');
+                                appendTxt(ref rtBox, " Wrong DateTime Parameter=" + hex, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd2 | 0x34: // ACK Response time
+                        {
+                            appendTxt(ref rtBox, "Response time", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd3 | 0x34: // Send Status from MCU to module
+                        {
+                            appendTxt(ref rtBox, "Send Status", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd3 | 0x34: // Response Send Status from MCU to module
+                        {
+                            appendTxt(ref rtBox, "Send Status", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true, true);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd4 | 0x34: // Response Reset
+                        {
+                            appendTxt(ref rtBox, "Reset", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd4 | 0x34: // Reset Cmd
+                        {
+                            appendTxt(ref rtBox, "Reset", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd5 | 0x34: // Reset Status
+                        {
+                            appendTxt(ref rtBox, "Reset Status", colorCmd);
+                            int state = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref ResetStates, colorData, state, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd5 | 0x34: // ACK Reset Status
+                        {
+                            appendTxt(ref rtBox, "Reset Status", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd6 | 0x34: // Response Send Status from MCU to module
+                        {
+                            appendTxt(ref rtBox, "Send Status", colorCmd);
+                            appendTxt(ref rtBox, " Get map session ID", colorInfo);
+                        }
+                        break;
+
+                    case Ver0 | DLen4 | SCmd6 | 0x34: // Response Send Status from MCU to module
+                        {
+                            appendTxt(ref rtBox, "Send Status", colorCmd);
+                            int sucFlag = data[7];
+                            if (sucFlag == 0) {
+                                appendTxt(ref rtBox, " Success", colorACK);
+                            } else if (sucFlag == 1) {
+                                appendTxt(ref rtBox, " The map streaming service is not enabled", colorErr);
+                            } else if (sucFlag == 2) {
+                                appendTxt(ref rtBox, " Failed to get the session ID", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong SuccessFlag=" + sucFlag, colorErr);
+                                bErr = true;
+                            }
+                            int mapId = (data[8] << 8) + data[9];
+                            appendTxt(ref rtBox, " Id=0x", colorDP);
+                            appendTxt(ref rtBox, mapId.ToString("X4"), colorData);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd7 | 0x34: // Response Get information about Wi-Fi module
+                        {
+                            appendTxt(ref rtBox, "Wi-Fi Infos", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                            if (dataLen > 8) {
+                                string infoTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
+                                appendTxt(ref rtBox, " " + infoTxt, colorData);
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                    case Ver3 | DLen3 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                    case Ver3 | DLen4 | SCmd7 | 0x34: // Get information about Wi-Fi module
+                    case Ver3 | DLenX | SCmd7 | 0x34: // Get information about Wi-Fi module
+                        {
+                            appendTxt(ref rtBox, "Get Wi-Fi Infos", colorCmd);
+                            int offset = 7;
+                            while (offset < (num - 1)) {
+                                int info = data[offset++];
+                                bErr |= decodeDictParam(ref rtBox, ref WiFiInfos, colorData, info, true);
+                            } // while
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmdb | 0x34: // Response Send Status from MCU to module
+                    case Ver3 | DLenX | SCmdb | 0x34: // Response Send Status from MCU to module
+                        {
+                            appendTxt(ref rtBox, "Send Status", colorCmd);
+                            int respStatus = data[7];
+                            if (respStatus == 0) {
+                                appendTxt(ref rtBox, " Failure", colorErr);
+                            } else if (respStatus == 1) {
+                                appendTxt(ref rtBox, " Success", colorACK);
+                            } else if (respStatus == 2) {
+                                appendTxt(ref rtBox, " Invalid Data", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                            }
+
+                            if (dataLen >= 9) {
+                                int resTime = data[8];
+                                bErr |= decodeDictParam(ref rtBox, ref ResultTimes, colorData, resTime, true);
+
+                                int year = data[9] + 2000;
+                                int month = data[10];
+                                int day = data[11];
+                                int hour = data[12];
+                                int minute = data[13];
+                                int second = data[14];
+                                try {
+                                    DateTime date = new DateTime(year, month, day, hour, minute, second);
+                                    decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
+                                } catch {
+                                    string hex = BitConverter.ToString(data, 10, 5).Replace('-', ' ');
+                                    appendTxt(ref rtBox, " Wrong DateTime Parameter=" + hex, colorErr);
+                                    bErr = true;
+                                }
+
+                                // decode all status of DP units
+                                int offset = 15; // start index to read status of DP units
+                                while (bErr == false && offset < (num - 1)) {
+                                    bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
+                                } // while
+                                if (offset != (num - 1)) { // all eaten? => no
+                                    appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                                    bErr = true;
+                                }
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen3 | SCmd1 | 0x35: // Response Bluetooth functional test
+                        {
+                            appendTxt(ref rtBox, "Bluetooth functional test", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, false);
+                            if (respStatus == 0) {
+                                int err = data[8];
+                                appendTxt(ref rtBox, " error=", colorErr);
+                                appendTxt(ref rtBox, (err == 0) ? "No beacon" : (err == 1) ? "No license" : "Wrong err=" + err.ToString(), (err == 0) ? colorData : colorErr);
+                            } else {
+                                UInt64 signal = data[8];
+                                decodeParam(ref rtBox, "Signal", signal);
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd1 | 0x35: // Cmd Bluetooth functional test
+                        {
+                            appendTxt(ref rtBox, "Bluetooth functional test", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd4 | 0x35: // Response Bluetooth Status
+                    case Ver3 | DLen2 | SCmd5 | 0x35: // Response Bluetooth connection status
+                        {
+                            appendTxt(ref rtBox, "Bluetooth Status", colorCmd);
+                            int state = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref BluetoothStatus, colorInfo, state, true);
+                            bErr |= decodeDictParam(ref rtBox, ref BluetoothLEDStatus, colorParam, state, true);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | SCmd4 | 0x35: // ACK Bluetooth Status
+                        {
+                            appendTxt(ref rtBox, "Bluetooth Status", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd5 | 0x35: // Request Bluetooth connection status
+                        {
+                            appendTxt(ref rtBox, "Request Bluetooth connection status", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd6 | 0x35: // Data notification for Bluetooth/Beacon remote control
+                        {
+                            appendTxt(ref rtBox, "Data notification for Bluetooth/Beacon remote control", colorCmd);
+                            UInt64 catId = data[7];
+                            decodeParam(ref rtBox, "CatId", catId);
+                            UInt64 ctrlCmd = data[8];
+                            decodeParam(ref rtBox, "CtrlCmd", ctrlCmd);
+                            UInt64 cmdData = (UInt64)((data[9] << 24) + (data[10] << 16) + (data[11] << 8) + data[12]);
+                            decodeParam(ref rtBox, "CmdData", cmdData, 8);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd6 | 0x35: // ACK Data notification for Bluetooth/Beacon remote control
+                        {
+                            appendTxt(ref rtBox, "Data notification for Bluetooth/Beacon remote control", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd1 | 0x36: // Response Enable the extended DP service
+                        {
+                            appendTxt(ref rtBox, "Enable ext. DP service", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd1 | 0x36: // Enable the extended DP service
+                        {
+                            appendTxt(ref rtBox, "Enable ext. DP service", colorCmd);
+                            int flag = data[7];
+                            if (flag == 0) {
+                                appendTxt(ref rtBox, " disable", colorInfo);
+                            } else if (flag == 1) {
+                                appendTxt(ref rtBox, " enable", colorInfo);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong Flag=" + flag, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd2 | 0x36: // Send commands of extended DPs
+                        {
+                            appendTxt(ref rtBox, "Send commands of extended DPs", colorCmd);
+                            int dataSrc = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref DataSources, colorData, dataSrc, true);
+
+                            // decode all DP units
+                            int offset = 8; // start index to read DP units
+                            while (bErr == false && offset < (num - 1)) {
+                                bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
+                            } // while
+                            if (offset != (num - 1)) { // all eaten? => no
+                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmd3 | 0x36: // Report status of extended DPs
+                        {
+                            appendTxt(ref rtBox, "Report status of extended DPs", colorCmd);
+                            int repStatus = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref McuReportStatus, colorData, repStatus, true);
+                            int dataSrc = data[8];
+                            bErr |= decodeDictParam(ref rtBox, ref DataSources, colorData, dataSrc, true);
+
+                            // decode all DP units
+                            int offset = 9; // start index to read DP units
+                            while (bErr == false && offset < (num - 1)) {
+                                bErr |= decodeStatusDataUnits(ref rtBox, dec, num, ref offset, ref data);
+                            } // while
+                            if (offset != (num - 1)) { // all eaten? => no
+                                appendTxt(ref rtBox, " Wrong DP decoding offset=" + offset, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd0 | 0x37: // Notification of new features
+                    case Ver0 | DLen3 | SCmd0 | 0x37: // Notification of new features
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            int mcuOTA = data[7];
+                            if (mcuOTA < 2) {
+                                appendTxt(ref rtBox, " McuOTA=" + ((mcuOTA == 0) ? "Scratchpad" : "No scratchpad"), colorInfo);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong McuOTA=" + mcuOTA, colorErr);
+                                bErr = true;
+                            }
+                            if (dataLen == 3) {
+                                int abv = data[8];
+                                decodeAbv(ref rtBox, abv);
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd0 | 0x37: // Request of new features
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            appendTxt(ref rtBox, " Request", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd0 | 0x37: // Response of new feature request
+                        {
+                            appendTxt(ref rtBox, "Feature Request", colorCmd);
+                            int respStatus = data[7];
+                            if (respStatus == 0) {
+                                appendTxt(ref rtBox, " Success", colorACK);
+                            } else if (respStatus == 1) {
+                                appendTxt(ref rtBox, " Failure", colorErr);
+                            } else if (respStatus == 2) {
+                                appendTxt(ref rtBox, " Invalid Data", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus, colorErr);
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmd0 | 0x37: // Notification of new feature setting ACK
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            string prodTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                            appendTxt(ref rtBox, " " + prodTxt, colorData);
+                            int idx = prodTxt.IndexOf("\"abv\":") + 6;
+                            if (idx > 6) {
+                                int abv;
+                                string subStr = prodTxt.Substring(idx, prodTxt.IndexOfAny(separators, idx) - idx);
+                                if (Int32.TryParse(subStr, out abv)) {
+                                    decodeAbv(ref rtBox, abv);
+                                }
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd1 | 0x37: // Notification of new feature setting ACK
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            appendTxt(ref rtBox, " Notify file download task", colorInfo);
+                        }
+                        break;
+
+                    case Ver0 | DLen3 | SCmd1 | 0x37: // Notification of new feature setting
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            int accept = data[7];
+                            if (accept == 0) {
+                                int packSize = data[8];
+                                bErr |= decodeDictParam(ref rtBox, ref PacketSizes, colorParam, packSize, false);
+                            } else if (accept == 1) {
+                                int transfStatus = data[8];
+                                bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong Accept=" + accept, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd2 | 0x37: // File Info Sync
+                        {
+                            appendTxt(ref rtBox, "File Info Sync", colorCmd);
+                            // assuming Tuya spec means: file info is presented like in 0x37 subCmd 6
+                            string fileInfosTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                            appendTxt(ref rtBox, " " + fileInfosTxt, colorData);
+
+                            int idx = fileInfosTxt.IndexOf("\"type\":") + 7;
+                            if (idx > 7) {
+                                int fInfo;
+                                string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
+                                if (Int32.TryParse(subStr, out fInfo)) {
+                                    decodeDictParam(ref rtBox, ref FileTypes, colorParam, fInfo, false);
+                                }
+                            }
+
+                            idx = fileInfosTxt.IndexOf("\"act\":") + 6;
+                            if (idx > 6) {
+                                int fAction;
+                                string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
+                                if (Int32.TryParse(subStr, out fAction)) {
+                                    decodeDictParam(ref rtBox, ref FileActions, colorParam, fAction, false);
+                                }
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd2 | 0x37: // Response File Info Sync
+                        {
+                            appendTxt(ref rtBox, "File Info Sync", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver0 | DLen3 | SCmd4 | 0x37: // Response Interrupt file transfer
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            appendTxt(ref rtBox, " Response of interrupt file transfer", colorInfo);
+                            int cmdTerm = data[7];
+                            int respStatus = data[8];
+
+                            if (cmdTerm == 1) {
+                                if (respStatus == 0) {
+                                    appendTxt(ref rtBox, " Success", colorACK);
+                                } else if (respStatus == 1) {
+                                    appendTxt(ref rtBox, " Failure", colorErr);
+                                } else if (respStatus == 2) {
+                                    appendTxt(ref rtBox, " Canceled", colorErr);
+                                } else {
+                                    appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                                }
+                            } else if (cmdTerm == 2) {
+                                int transfStatus = data[8];
+                                bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong CmdTerm=" + cmdTerm.ToString(), colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen3 | SCmd4 | 0x37: // Notification of new feature setting ACK
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            appendTxt(ref rtBox, " Interrupt file transfer", colorInfo);
+                            int intState = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref InterruptStates, colorData, intState, false);
+                            int downloadExc = data[8];
+                            bErr |= decodeDictParam(ref rtBox, ref FileDownloadExceptions, colorErr, downloadExc, false);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd6 | 0x37: // Notification of new feature setting ACK
+                        {
+                            appendTxt(ref rtBox, "Set Features", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmd6 | 0x37: // Request File transfer
+                        {
+                            appendTxt(ref rtBox, "File transfer", colorCmd);
+                            appendTxt(ref rtBox, " Request uploading files", colorInfo);
+                            string fileInfosTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                            appendTxt(ref rtBox, " " + fileInfosTxt, colorData);
+
+                            int idx = fileInfosTxt.IndexOf("\"type\":") + 7;
+                            if (idx > 7) {
+                                int fInfo;
+                                string subStr = fileInfosTxt.Substring(idx, fileInfosTxt.IndexOfAny(separators, idx) - idx);
+                                if (Int32.TryParse(subStr, out fInfo)) {
+                                    decodeDictParam(ref rtBox, ref FileTypes, colorParam, fInfo, false);
+                                }
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen3 | SCmd7 | 0x37: // Response File transfer
+                        {
+                            appendTxt(ref rtBox, "File transfer", colorCmd);
+                            int respStatus = data[7];
+                            if (respStatus == 0) {
+                                appendTxt(ref rtBox, " successful", colorACK);
+                            } else if (respStatus == 1) {
+                                appendTxt(ref rtBox, " failed", colorErr);
+                            } else if (respStatus == 2) {
+                                appendTxt(ref rtBox, " canceled", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                            }
+                            int transfStatus = data[8];
+                            bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmd7 | 0x37: // Notification of new feature setting ACK
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            appendTxt(ref rtBox, " File data", colorInfo);
+                            UInt64 transId = (UInt64)((data[7] << 8) + data[8]);
+                            decodeParam(ref rtBox, "TransmissionId", transId);
+                            UInt64 offset = (UInt64)((data[9] << 24) + (data[10] << 16) + (data[11] << 8) + data[12]);
+                            decodeParam(ref rtBox, "Offset", offset, 8);
+                            if (dataLen > 6) { // data bytes
+                                string hex = Regex.Replace(BitConverter.ToString(data, 13, dataLen - 7), @"\-\S", "");
+                                decodeParamStr(ref rtBox, "Data", hex);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen4 | SCmd8 | 0x37: // Notification of new feature setting ACK
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            int cmdRet = data[7];
+                            if (cmdRet == 1) {
+                                appendTxt(ref rtBox, " File download", colorACK);
+                            } else if (cmdRet == 2) {
+                                appendTxt(ref rtBox, " File upload", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong CmdRet=" + cmdRet.ToString(), colorErr);
+                            }
+                            int respStatus = data[8];
+                            decodeResponse(ref rtBox, respStatus, true);
+                            if (respStatus == 1) {
+                                int transfStatus = data[9];
+                                bErr |= decodeDictParam(ref rtBox, ref FileTransferStatus, colorErr, transfStatus, true);
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd8 | 0x37: // Notification of new feature setting ACK
+                        {
+                            appendTxt(ref rtBox, "Features", colorCmd);
+                            appendTxt(ref rtBox, " File download ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x60: // Voice features
+                        {
+                            appendTxt(ref rtBox, "Voice Features", colorCmd);
+                            int voiceState = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceStatus, colorParam, voiceState, false);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x60: // Voice features
+                        {
+                            appendTxt(ref rtBox, "Voice Features", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x61: // Voice features Mute Mic
+                        {
+                            appendTxt(ref rtBox, "Voice Features Mute Mic", colorCmd);
+                            int micState = data[6];
+                            decodeParamStr(ref rtBox, "VoiceState", (micState == 0) ? "Mic on" : "Mic muted");
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | 0x61: // Voice features Mute Mic
+                        {
+                            appendTxt(ref rtBox, "Voice Features Mute Mic", colorCmd);
+                            int voiceCmd = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceStatusCmds, colorInfo, voiceCmd, false);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x62: // Voice features Mute Mic
+                        {
+                            appendTxt(ref rtBox, "Voice Features", colorCmd);
+                            UInt64 volCmd = data[6];
+                            decodeParam(ref rtBox, "Volume", volCmd, 0);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | 0x62: // Voice features Mute Mic
+                        {
+                            appendTxt(ref rtBox, "Voice Features", colorCmd);
+                            UInt64 volCmd = data[6];
+                            if (volCmd == 0xa0) {
+                                appendTxt(ref rtBox, " Query", colorCmd);
+                            } else {
+                                appendTxt(ref rtBox, " Set", colorSubCmd);
+                                decodeParam(ref rtBox, "Volume", volCmd, 0);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen1| 0x63: // Voice features Test
+                        {
+                            appendTxt(ref rtBox, "Voice Test", colorCmd);
+                            int testState = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceTestCmds, colorInfo, testState, false);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | 0x63: // Voice features Test
+                        {
+                            appendTxt(ref rtBox, "Voice Test", colorCmd);
+                            int voiceCmd = data[6];
+                            if (voiceCmd == 0xa0) {
+                                appendTxt(ref rtBox, " Query", colorCmd);
+                            } else {
+                                appendTxt(ref rtBox, " Set", colorSubCmd);
+                                bErr |= decodeDictParam(ref rtBox, ref VoiceTestCmds, colorInfo, voiceCmd, false);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | 0x64: // Test waking up voice assistant
+                        {
+                            appendTxt(ref rtBox, "Test Waking Up", colorCmd);
+                            int testWakUp = data[6];
+                            bErr |= decodeDictParam(ref rtBox, ref TestWakingUpCmds, colorInfo, testWakUp, false);
+                        }
+                        break;
+
+                    case Ver3 | DLen0 | 0x64: // Test waking up voice assistant
+                        {
+                            appendTxt(ref rtBox, "Test Waking Up", colorCmd);
+                            appendTxt(ref rtBox, " Cmd", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd0 | 0x65: // Voice module play
+                        {
+                            appendTxt(ref rtBox, "Voice Module Play", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmd0 | 0x65: // Voice module play list
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                            appendTxt(ref rtBox, " " + playTxt, colorData);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd1 | 0x65: // Voice module play list
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                            appendTxt(ref rtBox, " " + playTxt, colorData);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd1 | 0x65: // Voice module Play
+                        {
+                            appendTxt(ref rtBox, "Voice Module Play", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd2 | 0x65: // Voice module wake up
+                        {
+                            appendTxt(ref rtBox, "Voice Module Wake Up", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd2 | 0x65: // Voice module wake up
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            appendTxt(ref rtBox, " Wake Up", colorCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd3 | 0x65: // Voice module ASR
+                        {
+                            appendTxt(ref rtBox, "Voice Module ASR", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd3 | 0x65: // Response Voice module ASR
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            int asrCmd = data[7]; // automatic speech recognition
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceASRCmds, colorParam, asrCmd, true);
+                        }
+                        break;
+
+                    case Ver0 | DLen1 | SCmd4 | 0x65: // Voice module Query play media
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            appendTxt(ref rtBox, " Query Play Media", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmd4 | 0x65: // Response Voice module play media
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            string playTxt = Encoding.UTF8.GetString(data, 7, dataLen - 1);
+                            appendTxt(ref rtBox, " " + playTxt, colorData);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmd5 | 0x65: // Voice module Query playlist
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            appendTxt(ref rtBox, " Query Playlist", colorSubCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmd5 | 0x65: // Response Voice module query playlist
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            int respStatus = data[7];
+                            if (respStatus == 0) {
+                                appendTxt(ref rtBox, " Query Playlist Success", colorACK);
+                            } else if (respStatus == 1) {
+                                appendTxt(ref rtBox, " Query Playlist Failure", colorErr);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + respStatus.ToString(), colorErr);
+                            }
+                            if (respStatus == 0 && dataLen > 2) {
+                                string playTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
+                                appendTxt(ref rtBox, " " + playTxt, colorData);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd6 | 0x65: // Voice module Call
+                        {
+                            appendTxt(ref rtBox, "Voice Module Call", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd6 | 0x65: // Response Voice module Call
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            int vcCmd = data[7]; // voice cmd
+                            bErr |= decodeDictParam(ref rtBox, ref VoiceCallCmds, colorParam, vcCmd, true);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd7 | 0x65: // Voice module Start Rec
+                        {
+                            appendTxt(ref rtBox, "Voice Module Start Recording", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd7 | 0x65: // Response Voice module Start Rec
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            int recCmd = data[7]; // start recording
+                            if (recCmd == 1) {
+                                appendTxt(ref rtBox, " Start Recording", colorSubCmd);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong recCmd=" + recCmd.ToString(), colorErr);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd8 | 0x65: // Voice module Stop Rec
+                        {
+                            appendTxt(ref rtBox, "Voice Module Stop Recording", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd8 | 0x65: // Response Voice module start/stop recording
+                        {
+                            appendTxt(ref rtBox, "Voice Module", colorCmd);
+                            int recStatus = data[7];
+                            if (recStatus == 0) {
+                                appendTxt(ref rtBox, " Recording stopped", colorInfo);
+                            } else if (recStatus == 1) {
+                                appendTxt(ref rtBox, " Recording started", colorInfo);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + recStatus.ToString(), colorErr);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmd9 | 0x65: // Alarm state change
+                        {
+                            appendTxt(ref rtBox, "Alarm state Change", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmd9 | 0x65: // Alarm en-/disable
+                        {
+                            appendTxt(ref rtBox, "Alarm", colorCmd);
+                            int alarmState = data[7];
+                            if (alarmState == 0) {
+                                appendTxt(ref rtBox, " disabled", colorSubCmd);
+                            } else if (alarmState == 1) {
+                                appendTxt(ref rtBox, " enabled", colorSubCmd);
+                            } else {
+                                appendTxt(ref rtBox, " Wrong RespStatus=" + alarmState.ToString(), colorErr);
+                            }
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmda | 0x65: // Set alarms
+                        {
+                            appendTxt(ref rtBox, "Set Alarms", colorCmd);
+                            UInt64 numAlarms = data[7];
+                            decodeParam(ref rtBox, "NumAlarms", numAlarms);
+                            int opType = data[8];
+                            bErr |= decodeDictParam(ref rtBox, ref RingToneOpStates, colorParam, opType, false);
+
+                            int offset = 9; // start index to read alarms
+                            // decode all alarms
+                            while (bErr == false && offset < (num - 1)) {
+                                UInt64 alarmId = (UInt64)(data[offset++] << 40) + (UInt64)(data[offset++] << 32) + (UInt64)(data[offset++] << 24) + (UInt64)(data[offset++] << 16) + (UInt64)(data[offset++] << 8) + data[offset++];
+                                decodeParam(ref rtBox, "AlarmId", alarmId, 12);
+
+                                int year = data[offset++] + 2000;
+                                int month = data[offset++];
+                                int day = data[offset++];
+                                int hour = data[offset++];
+                                int minute = data[offset++];
+                                try {
+                                    DateTime date = new DateTime(year, month, day, hour, minute, 0);
+                                    decodeParamStr(ref rtBox, "Date", date.ToString("yy-MM-dd HH:mm"));
+                                } catch {
+                                    appendTxt(ref rtBox, " Wrong DateTime Parameter", colorErr);
+                                    bErr = true;
+                                }
+                                int rule = data[offset++];
+                                if (rule == 0) {
+                                    appendTxt(ref rtBox, " One-Time-Alarm", colorData);
+                                } else {
+                                    string days = "";
+                                    if (0x01 == (rule & 0x01)) { days += "enabled "; } else { days += "dismissed "; }
+                                    if (0x02 == (rule & 0x02)) { days += "Saturday,"; }
+                                    if (0x04 == (rule & 0x04)) { days += "Friday,"; }
+                                    if (0x08 == (rule & 0x08)) { days += "Thursday,"; }
+                                    if (0x10 == (rule & 0x10)) { days += "Wednesday,"; }
+                                    if (0x20 == (rule & 0x20)) { days += "Tuesday,"; }
+                                    if (0x40 == (rule & 0x40)) { days += "Monday,"; }
+                                    if (0x80 == (rule & 0x80)) { days += "Sunday,"; }
+                                    decodeParamStr(ref rtBox, "Rule", days.Trim(','));
+                                }
+
+                                int tone = data[offset++];
+                                if (tone == 0) {
+                                    appendTxt(ref rtBox, " Online ringtone", colorInfo);
+                                } else {
+                                    appendTxt(ref rtBox, " Local ringtone", colorInfo);
+                                }
+
+                                string toneTxt = Encoding.UTF8.GetString(data, offset, 21);
+                                if (toneTxt[0] == '\0')
+                                    toneTxt = "";
+                                decodeParamStr(ref rtBox, "RingToneName", toneTxt);
+
+                                offset += 21;
+                            } // while
+                            if (offset != (num - 1)) { // all eaten? => no
+                                appendTxt(ref rtBox, " Wrong Alarm decoding offset=" + offset, colorErr);
+                                bErr = true;
+                            }
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmda | 0x65: // Set alarms ACK
+                        {
+                            appendTxt(ref rtBox, "Set Alarms", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmdb | 0x65: // Query alarm list
+                        {
+                            appendTxt(ref rtBox, "Query Alarms", colorCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmdc | 0x65: // Response Voice module Turn on/off local alarm
+                        {
+                            appendTxt(ref rtBox, "Turn on/off local alarm", colorCmd);
+                            appendTxt(ref rtBox, " ACK", colorACK);
+                        }
+                        break;
+
+                    case Ver3 | DLen2 | SCmdc | 0x65: // Voice module Turn on/off local alarm
+                        {
+                            appendTxt(ref rtBox, "Turn on/off local alarm", colorCmd);
+                            int onOff = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref SwitchLocalAlarms, colorParam, onOff, false);
+                        }
+                        break;
+
+                    case Ver0 | DLenX | SCmdd | 0x65: // Response Change Alarm
+                        {
+                            appendTxt(ref rtBox, "Change alarm", colorCmd);
+                            int cmdAlarm = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref SetAlarms, colorParam, cmdAlarm, false);
+                            int op = data[8];
+                            bErr |= decodeDictParam(ref rtBox, ref AlarmOpResponses, colorParam, op, false);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmdd | 0x65: // Change Alarm
+                        {
+                            appendTxt(ref rtBox, "Change alarm", colorCmd);
+                            int cmdAlarm = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref SetAlarms, colorParam, cmdAlarm, false);
+                            if (dataLen > 8) {
+                                string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 2);
+                                appendTxt(ref rtBox, " " + alarmTxt, colorData);
+                            }
+                            int offset = 9;
+                            UInt64 timerId = (UInt64)(data[offset++] << 40) + (UInt64)(data[offset++] << 32) + (UInt64)(data[offset++] << 24) + (UInt64)(data[offset++] << 16) + (UInt64)(data[offset++] << 8) + data[offset++];
+                            decodeParam(ref rtBox, "TimerId", timerId, 12);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmde | 0x65: // Response Query the number of reminders
+                        {
+                            appendTxt(ref rtBox, "Query number of reminders", colorCmd);
+                            UInt64 numReminder = data[6];
+                            decodeParam(ref rtBox, "#", numReminder, 0);
+                        }
+                        break;
+
+                    case Ver3 | DLen1 | SCmde | 0x65: // Query the number of reminders
+                        {
+                            appendTxt(ref rtBox, "Query number of reminders", colorCmd);
+                        }
+                        break;
+
+                    case Ver0 | DLen2 | SCmdf | 0x65: // Response Send alarm data 
+                        {
+                            appendTxt(ref rtBox, "Send alarm data", colorCmd);
+                            int op = data[7];
+                            bErr |= decodeDictParam(ref rtBox, ref AlarmOpResponses, colorInfo, op, false);
+                        }
+                        break;
+
+                    case Ver3 | DLenX | SCmdf | 0x65: // Send alarm data 
+                        {
+                            appendTxt(ref rtBox, "Send alarm data", colorCmd);
+                            string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
                             appendTxt(ref rtBox, " " + alarmTxt, colorData);
                         }
-                        int offset = 9;
-                        UInt64 timerId = (UInt64)(data[offset++] << 40) + (UInt64)(data[offset++] << 32) + (UInt64)(data[offset++] << 24) + (UInt64)(data[offset++] << 16) + (UInt64)(data[offset++] << 8) + data[offset++];
-                        decodeParam(ref rtBox, "TimerId", timerId, 12);
-                    }
-                    break;
+                        break;
 
-                case Ver0 | DLen2 | SCmde | 0x65: // Response Query the number of reminders
-                    {
-                        appendTxt(ref rtBox, "Query number of reminders", colorCmd);
-                        UInt64 numReminder = data[6];
-                        decodeParam(ref rtBox, "#", numReminder, 0);
-                    }
-                    break;
+                    case Ver0 | DLen2 | SCmd1 | 0x72: // Response Fan functional test
+                        {
+                            appendTxt(ref rtBox, "Fan Functional Test", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true);
+                        }
+                        break;
 
-                case Ver3 | DLen1 | SCmde | 0x65: // Query the number of reminders
-                    {
-                        appendTxt(ref rtBox, "Query number of reminders", colorCmd);
-                    }
-                    break;
+                    case Ver3 | DLen3 | SCmd1 | 0x72: // Fan functional test
+                        {
+                            appendTxt(ref rtBox, "Fan Functional Test", colorCmd);
+                            UInt64 fanSpeed = data[7];
+                            decodeParam(ref rtBox, "Speed", fanSpeed, 0);
+                            UInt64 holdTime = data[8];
+                            decodeParam(ref rtBox, "Hold-Time", holdTime, 0);
+                        }
+                        break;
 
-                case Ver0 | DLen2 | SCmdf | 0x65: // Response Send alarm data 
-                    {
-                        appendTxt(ref rtBox, "Send alarm data", colorCmd);
-                        int op = data[7];
-                        bErr |= decodeDictParam(ref rtBox, ref AlarmOpResponses, colorInfo, op, false);
-                    }
-                    break;
+                    case Ver0 | DLen2 | SCmd2 | 0x72: // Response Set duty cycle
+                        {
+                            appendTxt(ref rtBox, "Set Fan", colorCmd);
+                            int respStatus = data[7];
+                            decodeResponse(ref rtBox, respStatus, true, true);
+                        }
+                        break;
 
-                case Ver3 | DLenX | SCmdf | 0x65: // Send alarm data 
-                    {
-                        appendTxt(ref rtBox, "Send alarm data", colorCmd);
-                        string alarmTxt = Encoding.UTF8.GetString(data, 8, dataLen - 1);
-                        appendTxt(ref rtBox, " " + alarmTxt, colorData);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd1 | 0x72: // Response Fan functional test
-                    {
-                        appendTxt(ref rtBox, "Fan Functional Test", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true);
-                    }
-                    break;
-
-                case Ver3 | DLen3 | SCmd1 | 0x72: // Fan functional test
-                    {
-                        appendTxt(ref rtBox, "Fan Functional Test", colorCmd);
-                        UInt64 fanSpeed = data[7];
-                        decodeParam(ref rtBox, "Speed", fanSpeed, 0);
-                        UInt64 holdTime = data[8];
-                        decodeParam(ref rtBox, "Hold-Time", holdTime, 0);
-                    }
-                    break;
-
-                case Ver0 | DLen2 | SCmd2 | 0x72: // Response Set duty cycle
-                    {
-                        appendTxt(ref rtBox, "Set Fan", colorCmd);
-                        int respStatus = data[7];
-                        decodeResponse(ref rtBox, respStatus, true, true);
-                    }
-                    break;
-
-                case Ver3 | DLen2 | SCmd2 | 0x72: // Set duty cycle
-                    {
-                        appendTxt(ref rtBox, "Set Fan", colorCmd);
-                        UInt64 dutyCycle = data[7];
-                        decodeParam(ref rtBox, "DutyCycle", dutyCycle, 0);
-                    }
-                    break;
+                    case Ver3 | DLen2 | SCmd2 | 0x72: // Set duty cycle
+                        {
+                            appendTxt(ref rtBox, "Set Fan", colorCmd);
+                            UInt64 dutyCycle = data[7];
+                            decodeParam(ref rtBox, "DutyCycle", dutyCycle, 0);
+                        }
+                        break;
 
 
-                default: {
-                        appendTxt(ref rtBox, "Unknown DLen+Version+Subcmd+Cmd=0x" + sw.ToString("X6"), colorErr);
-                        bErr = true;
-                    }
-                    break;
-            } // switch
+                    default: {
+                            appendTxt(ref rtBox, "Unknown DLen+Version+Subcmd+Cmd=0x" + sw.ToString("X6"), colorErr);
+                            bErr = true;
+                        }
+                        break;
+                } // switch
+            } catch { bErr = true; }
 
             if (bErr) { // if an error had been detected, then print all msg bytes in hex
                 string hex = (num > 0) ? BitConverter.ToString(data, 0, num).Replace('-', ' ') : "-";
