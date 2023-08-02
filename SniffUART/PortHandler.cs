@@ -17,7 +17,7 @@ namespace SniffUART {
         public DateTime _dateStart;
         private bool _continue = false;
         private SerialPort _serialPort = new SerialPort();
-        private byte[] buf = new byte[257]; // receive buffer
+        private byte[] buf = new byte[256]; // receive buffer
 
         // c'tor
         public PortHandler(FormMain frm, int uart) {
