@@ -27,11 +27,39 @@ namespace SniffUART {
             _frmMain._frmDecode = null;
         }
 
+        private string devideMessages() {
+            StringBuilder sb = new StringBuilder(1000);
+            foreach (string line in tBoxMessages.Lines) {
+                string sLine = line.Trim();
+                if (sLine == "" || sLine.StartsWith("//") || sLine.StartsWith(";"))
+                    continue;
+                string sline = line.Trim().Replace(',', ' ');
+                sline = sline.Replace(';', ' ');
+                sline = sline.Replace("  ", " ");
+                string lowLine = sLine.ToLower().Trim();
+                int idx = 0;
+                while (true) {
+                    int nxtIdx = lowLine.IndexOf("55 aa ", idx + 1);
+                    if (nxtIdx >= 0) {
+                        sb.Append(lowLine.Substring(idx, nxtIdx - idx) + "\r\n");
+                        idx = nxtIdx;
+                    } else {
+                        sb.Append(lowLine.Substring(idx));
+                        break;
+                    }
+                } // while
+            } // foreach
+
+            return sb.ToString();
+        }
+
         private void butDecode_Click(object sender, EventArgs e) {
             DateTime date = DateTime.Now;
             string dateStr = date.ToString("yy-MM-dd HH:mm:ss.ff");
             TimeSpan diff = date - _dateStart;
             string diffStr = diff.ToString(@"hh\:mm\:ss\.ff");
+
+            //string msgs = devideMessages();
 
             foreach (string line in tBoxMessages.Lines) {
                 string sLine = line.Trim();
