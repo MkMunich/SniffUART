@@ -62,7 +62,7 @@ namespace SniffUART {
                 /// In other hand, if any data has received, first no-data cycle
                 /// causes to exit from routine.
 
-                int TimeOutSpan = 2;
+                int TimeOutSpan = 3;
                 // counts delay in TimeOutSpan-s after end of data to break receive
                 int EndOfDataCnt;
                 // pseudo-blocking timeout counter
@@ -149,7 +149,7 @@ namespace SniffUART {
                 return true;
 
             _readThread = new Thread(ReadLoop);
-            //_readThread.Priority = ThreadPriority.AboveNormal;
+            _readThread.Priority = ThreadPriority.AboveNormal;
 
             bool bOnePort = (_uartReal == 1 && _frm.OnePortToolStripMenuItem.CheckState == CheckState.Checked);
             _uartPar = (bOnePort) ? 0 : _uartReal; // take port parameter from UART0, if OnePort is true

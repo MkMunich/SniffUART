@@ -136,7 +136,7 @@ namespace SniffUART {
                     string line = "";
                     DataGridViewCellCollection cells = row.Cells;
                     foreach (DataGridViewCell cell in cells) {
-                        string str = (string)cell.Value;
+                        string str = (cell.Value != null) ? cell.Value.ToString() : "";
                         if (cell.EditType.Name == "DataGridViewRichTextBoxEditingControl") { // convert rtf to plain text
                             if (str != null && str.IndexOf(@"{\rtf1\") >= 0) { // cell contains rtf
                                 DataGridViewRichTextBoxEditingControl richBox = new DataGridViewRichTextBoxEditingControl();
@@ -158,7 +158,7 @@ namespace SniffUART {
 
         private void ImportToolStripMenuItem_Click(object sender, EventArgs e) {
             OpenFileDialog rfdlg = new OpenFileDialog {
-                Filter = "Text Files (*Sniff.txt) | *Sniff.txt"
+                Filter = "Text Files (*Sniff.txt)|*Sniff.txt|Text Files (*.txt)|*.txt"
             };
             if (rfdlg.ShowDialog() == DialogResult.OK) {
                 string[] lines = System.IO.File.ReadAllLines(rfdlg.FileName);
@@ -167,21 +167,21 @@ namespace SniffUART {
                     lineNr++;
                     string sLine = line.Trim('"');
                     string[] cols = sLine.Split(new string[]{ "\";\"" }, StringSplitOptions.None);
-                    if (cols.Length == 0)
+                    if (cols.Length < 5)
                         continue;
                     string portName = cols[0];
                     string dateStr = cols[1];
                     string diffStr = cols[2];
-                    string col = cols[3];
+                    string hexStr = cols[4];
                     object[] data = null;
                     if (portName.IndexOf("PortName") >= 0 || portName.Length <= 2 || portName.IndexOf(";") >= 0 ) {
-                        continue; // header has already been written
-                    } else if (col.IndexOf("Open ") == 0) { // log Start
-                        data = new object[] { eLogType.eStart, portName, dateStr, diffStr, col };
-                    } else if (portName.IndexOf("Decoder Mcu") == 0) { // log Decoder
+                        continue; // header has already been added to DGV
+                    } else if (hexStr.IndexOf("Open ") == 0) { // log Start
+                        data = new object[] { eLogType.eStart, portName, dateStr, diffStr, hexStr };
+                    } else if (portName.StartsWith("Decoder Mcu")) { // log Decoder
                         data = new object[] { eLogType.eDecoder, portName, dateStr, diffStr };
                     } else { // log Import
-                        string[] hex = col.Split(' ');
+                        string[] hex = hexStr.Split(' ');
                         try {
                             byte[] buf = hex.Select(value => Convert.ToByte(value, 16)).ToArray();
                             data = new object[] { eLogType.eImport, portName, dateStr, diffStr, buf.Length, buf };
