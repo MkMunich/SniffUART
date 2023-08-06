@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+//using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Forms;
 using System.Windows.Shapes;
@@ -102,7 +103,7 @@ namespace SniffUART {
             _frmDecode.Hide();
 
             // write header (for Excel csv import)
-            object[] row = new object[] { "PortName", "Time", "DeltaTime", "Hex", "ASCII", "Message" };
+            object[] row = new object[] { "PortName", "Time", "DeltaTime", "ASCII", "Hex", "Message" };
             _frm.DGVData.Rows.Add(row);
 
             logDecoder(_mcuProtocol);
@@ -303,10 +304,10 @@ namespace SniffUART {
                 case "ColPort":
                 break;
                 case "ColDeltaTime":
-                ColTime.Width = ColDeltaTime.Width;
+                    ColTime.Width = ColDeltaTime.Width;
                 break;
                 case "ColTime":
-                ColDeltaTime.Width = ColTime.Width;
+                    ColDeltaTime.Width = ColTime.Width;
                 break;
                 case "ColHex":
                 break;
@@ -321,17 +322,19 @@ namespace SniffUART {
             string uart0_err = "";
             string uart1_err = "";
             try {
-                _ports[0].Open();
-                toolStripStatusUART0.Text = _portName[0] + "(" + _uarts[0].PortName + ")";
-                toolStripStatusUART0.BackColor = Color.LightGreen;
+                if (_ports[0].Open()) {
+                    toolStripStatusUART0.Text = _portName[0] + "(" + _uarts[0].PortName + ")";
+                    toolStripStatusUART0.BackColor = Color.LightGreen;
+                }
 
             } catch (Exception ex) {
                 uart0_err = ex.Message;
             }
             try {
-                _ports[1].Open();
-                toolStripStatusUART1.Text = _portName[1] + "(" + _uarts[1].PortName + ")";
-                toolStripStatusUART1.BackColor = Color.LightGreen;
+                if (_ports[1].Open()) {
+                    toolStripStatusUART1.Text = _portName[1] + "(" + _uarts[1].PortName + ")";
+                    toolStripStatusUART1.BackColor = Color.LightGreen;
+                }
             } catch (Exception ex) {
                 uart1_err = ex.Message;
             }
@@ -342,6 +345,16 @@ namespace SniffUART {
             if (uart0_err != "" || uart1_err != "") {
                 MessageBox.Show("Error", "Error in OpenPort():" + errTxt, MessageBoxButtons.OK);
             }
+        }
+
+        private void closePortsToolStripMenuItem_Click(object sender, EventArgs e) {
+            _ports[0].Close();
+            toolStripStatusUART0.Text = _portName[0] + "(-)";
+            toolStripStatusUART0.BackColor = Color.Transparent;
+
+            _ports[1].Close();
+            toolStripStatusUART1.Text = _portName[1] + "(-)";
+            toolStripStatusUART1.BackColor = Color.Transparent;
         }
 
         // insert data into DGV
@@ -393,7 +406,7 @@ namespace SniffUART {
                         RichTextBox rt = new RichTextBox(); // must be c'ted outside decodeMsg(), otherwise it will get disposed!
                         DecodeMsg.decodeMsg(ref rt, rcvNum, ref buf);
 
-                        row = new object[] { portName, dtStr, tsStr, hex, ascii, rt.Rtf };
+                        row = new object[] { portName, dtStr, tsStr, ascii, hex, rt.Rtf };
                     } break;
                 case eLogType.eDecoder: {
                         string decoderTxt = (string)data[1];
@@ -451,6 +464,12 @@ namespace SniffUART {
             ColASCII.Visible = true;
             ColHex.Visible = false;
             ColMsg.Visible = false;
+
+            if (DGVData.SelectedCells.Count > 0) {
+                int rowIdx = DGVData.SelectedCells[0].RowIndex;
+                int colIdx = DGVData.SelectedCells[0].ColumnIndex;
+                DGVData.CurrentCell = DGVData.Rows[rowIdx].Cells[(colIdx > 2) ? 3 : colIdx];
+            }
         }
 
         private void hexToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -460,6 +479,12 @@ namespace SniffUART {
             ColASCII.Visible = false;
             ColHex.Visible = true;
             ColMsg.Visible = false;
+
+            if (DGVData.SelectedCells.Count > 0) {
+                int rowIdx = DGVData.SelectedCells[0].RowIndex;
+                int colIdx = DGVData.SelectedCells[0].ColumnIndex;
+                DGVData.CurrentCell = DGVData.Rows[rowIdx].Cells[(colIdx > 2) ? 4 : colIdx];
+            }
         }
 
         private void msgToolStripMenuItem_Click(object sender, EventArgs e) {
@@ -469,6 +494,12 @@ namespace SniffUART {
             ColASCII.Visible = false;
             ColHex.Visible = false;
             ColMsg.Visible = true;
+
+            if (DGVData.SelectedCells.Count > 0) {
+                int rowIdx = DGVData.SelectedCells[0].RowIndex;
+                int colIdx = DGVData.SelectedCells[0].ColumnIndex;
+                DGVData.CurrentCell = DGVData.Rows[rowIdx].Cells[(colIdx > 2) ? 5 : colIdx];
+            }
         }
 
         private void DecodeMessagesToolStripMenuItem_Click(object sender, EventArgs e) {

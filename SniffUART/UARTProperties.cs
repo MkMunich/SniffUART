@@ -88,16 +88,16 @@ namespace SniffUART
 
         private void getBaudRateCollection(string portName) {
             try {
-                SerialPort _serialPort = new SerialPort(portName);
-                _serialPort.Open();
+                SerialPort _uart = new SerialPort(portName);
+                _uart.Open();
 
                 // Getting COMMPROP structure, and its property dwSettableBaud.
-                object p = _serialPort.BaseStream.GetType().GetField("commProp",
-                   BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_serialPort.BaseStream);
+                object p = _uart.BaseStream.GetType().GetField("commProp",
+                   BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_uart.BaseStream);
                 Int32 dwSettableBaud = (Int32)p.GetType().GetField("dwSettableBaud",
                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(p);
 
-                _serialPort.Close();
+                _uart.Close();
                 updateBaudRateCollection(dwSettableBaud);
 
                 // set default baudrate
