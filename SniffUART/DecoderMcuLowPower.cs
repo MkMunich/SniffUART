@@ -408,8 +408,10 @@ namespace SniffUART {
                         }
                         break;
 
-                    case Ver0 | DLen4 | 0x010: // Obtain DP cache command && its answer (which is tricky to distinguish)
-                    case Ver0 | DLenX | 0x010: // Obtain DP cache command && its answer (which is tricky to distinguish)
+                    // Obtain DP cache command && its answer (which is tricky to distinguish)
+                    case Ver0 | DLen2 | 0x010:
+                    case Ver0 | DLen4 | 0x010:
+                    case Ver0 | DLenX | 0x010:
                         {
                             appendTxt(ref rtBox, "Obtain DP Cache", colorCmd);
                             if (dataLen > 0) {

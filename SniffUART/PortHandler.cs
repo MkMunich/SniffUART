@@ -62,7 +62,7 @@ namespace SniffUART {
                 /// In other hand, if any data has received, first no-data cycle
                 /// causes to exit from routine.
 
-                int TimeOutSpan = 3;
+                int TimeOutSpan = 2;
                 // counts delay in TimeOutSpan-s after end of data to break receive
                 int EndOfDataCnt;
                 // pseudo-blocking timeout counter
